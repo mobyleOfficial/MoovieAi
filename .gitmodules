@@ -1,0 +1,6 @@
+[submodule "moovie"]
+	path = moovie
+	url = https://github.com/mobyleOfficial/Moovie
+[submodule "backend"]
+	path = backend
+	url = https://github.com/mobyleOfficial/MoovieBackend
