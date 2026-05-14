@@ -19,7 +19,21 @@
       "Bash(npm run *)",
       "Bash(npm test)",
       "Bash(npm ls *)",
-      "Bash(npm audit)"
+      "Bash(npm audit)",
+      "Bash(node *)",
+      "Bash(npx *)",
+      "Bash(bundle install)",
+      "Bash(bundle exec *)",
+      "Bash(fastlane *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter test)",
+      "Bash(flutter analyze)",
+      "Bash(dart run *)",
+      "Bash(rbenv local)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(pwd)",
+      "Bash(which *)"
     ]
   }
 }
