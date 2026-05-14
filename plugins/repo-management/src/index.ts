@@ -176,7 +176,7 @@ const tools: Record<string, (args: Record<string, string>) => Promise<string>> =
           stdio: "pipe",
         });
 
-        // Create PR using gh CLI
+        // Create PR using gh CLI (auto-uses .github/pull_request_template.md)
         const ghArgs = [`--title "${title}"`, `--base ${baseRef}`];
         if (description) {
           ghArgs.push(`--body "${description}"`);
@@ -187,7 +187,7 @@ const tools: Record<string, (args: Record<string, string>) => Promise<string>> =
           stdio: "pipe",
         });
 
-        return `✓ PR created: ${branch} → ${baseRef}`;
+        return `✓ PR created: ${branch} → ${baseRef}\nTemplate applied from .github/pull_request_template.md`;
       } catch (error) {
         throw new Error(
           `Failed to open PR: ${(error as Error).message}`
