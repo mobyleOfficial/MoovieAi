@@ -1,11 +1,16 @@
 # Rules & Configuration
 
-Linting rules, formatter configuration, and AI assistant guidelines.
+Linting rules, formatter configuration, and ecosystem policies.
 
-Examples:
+## Core Policies
+
+- [NO_COAUTHORS.md](NO_COAUTHORS.md) — No coauthors in commits, PRs, or issues (single author always)
+
+## Shared Configuration
+
 - `.cursorrules` — Cursor IDE rules
 - `eslint.config.js` — JavaScript/TypeScript linting
 - `analysis_options.yaml` — Dart linting (symlink from moovie/)
 - `copilot-instructions.md` — GitHub Copilot rules
 
-These apply across child repositories via symlinking or explicit imports.
+Apply across child repositories via symlinking or explicit imports.

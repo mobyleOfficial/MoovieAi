@@ -214,6 +214,12 @@ cd backend
 
 ---
 
+## Critical Rules
+
+**No Coauthors:** Never use `Co-Authored-By` trailers in commits, PR descriptions, or issues in any child repository. Single author per commit always. See [rules/NO_COAUTHORS.md](rules/NO_COAUTHORS.md).
+
+---
+
 ## Notes for Claude Instances
 
 When working in child repos (moovie or backend):
@@ -221,4 +227,5 @@ When working in child repos (moovie or backend):
 - Check `research/` for design decisions that affect your changes
 - Use plugins/ and skills/ resources for repeated tasks
 - Update submodule references in the meta-repo after merging changes
+- **Follow NO_COAUTHORS rule strictly** — single author on all commits
 - If adding new shared resources, document them here
