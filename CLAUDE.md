@@ -218,6 +218,36 @@ cd backend
 
 **No Coauthors:** Never use `Co-Authored-By` trailers in commits, PR descriptions, or issues in any child repository. Single author per commit always. See [rules/NO_COAUTHORS.md](rules/NO_COAUTHORS.md).
 
+## Conventions
+
+### Commit Messages
+All commits across child repos follow Conventional Commits format:
+- `fix:` — bug fixes
+- `feat:` — new features
+- `chore:` — maintenance, dependency updates, tooling
+- `doc:` — documentation
+
+Example: `fix: correct auth token expiry logic`
+
+### Branch Naming
+- **Feature branches:** `feature/<description>` (target: `develop`)
+- **Release branches:** `release/<version>` (target: `main`)
+- **Bugfix branches:** `fix/<description>` (target: `develop`)
+
+### Pull Requests
+- Feature/bugfix PRs target `develop`
+- Release PRs target `main`
+- Use Conventional Commits format in PR title
+- No coauthors in PR descriptions
+
+### Submodule Operations
+Handled by `repo-management` MCP server:
+- `sync-submodule <name>` — update to latest remote
+- `create-feature-branch <name>` — sync first, then create `feature/<name>`
+- `create-release-branch <version>` — sync first, then create `release/<version>`
+- `open-pull-request` — auto-detects branch type, targets correct base branch
+- `check-status` — show stale/dirty submodules
+
 ---
 
 ## Notes for Claude Instances
