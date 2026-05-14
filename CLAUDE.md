@@ -21,9 +21,10 @@ MoovieAi/
 ├── moovie/           # Git submodule: Flutter frontend app
 ├── backend/          # Git submodule: Kotlin/Ktor backend
 ├── research/         # Research docs, analysis, design docs
-├── plugins/          # Claude Code plugins and extensions
-├── rules/            # Cursor rules, Copilot instructions, linting config
-├── skills/           # Custom Claude skills (DFA, workflows)
+├── plugins/          # Claude Code MCP plugins and servers
+├── rules/            # Linting, formatting, ecosystem policies
+├── skills/           # Custom Claude workflows (standardized documentation)
+├── agents/           # Custom Claude agents for specialized tasks
 └── CLAUDE.md         # This file
 ```
 
@@ -129,13 +130,16 @@ git commit -m "chore: update moovie submodule reference"
 Design docs, architecture decisions, API specs, performance analysis, user research. Reference these when understanding system-wide decisions or context for features.
 
 ### `plugins/`
-Claude Code plugins (MCP servers, custom tools). Register in `.claude/settings.json` to extend Claude's capabilities across all child repos.
+Claude Code MCP plugins and servers (e.g., repo-management). Register in `.claude/settings.json` to extend Claude's capabilities. Pre-registered and ready to use.
 
 ### `rules/`
-Linting configurations, formatter rules, Cursor/Copilot instructions. Reference when style issues arise or when implementing ecosystem-wide standards.
+Linting configurations, formatter rules, ecosystem policies. Reference when style issues arise or when implementing ecosystem-wide standards.
 
 ### `skills/`
-Custom Claude workflows (superpowers skills, automation scripts). Use when implementing repetitive patterns or cross-repo concerns.
+Custom Claude workflows (superpowers skills, standardized documentation formats). Use when implementing repetitive patterns or cross-repo concerns.
+
+### `agents/`
+Custom Claude agents for specialized tasks (frontend, backend, CI/CD, architecture review). Register in `.claude/settings.json` or invoke via `/agent-name`. Inherit ecosystem conventions and pre-authorized tools.
 
 ---
 

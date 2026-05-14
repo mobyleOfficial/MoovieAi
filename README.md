@@ -18,6 +18,7 @@ cd MoovieAi
 - **[plugins/](plugins)** — Claude Code MCP servers and tools
 - **[rules/](rules)** — Linting, formatting, ecosystem policies
 - **[skills/](skills)** — Standardized workflows and documentation formats
+- **[agents/](agents)** — Custom Claude agents for specialized tasks
 
 See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete development guide.
 
