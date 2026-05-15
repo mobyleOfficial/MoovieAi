@@ -138,6 +138,10 @@ Linting configurations, formatter rules, ecosystem policies. Reference when styl
 ### `skills/`
 Custom Claude workflows (superpowers skills, standardized documentation formats). Use when implementing repetitive patterns or cross-repo concerns.
 
+**Available Skills:**
+- `moovie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
+- `setting-up-linear-mcp` — Configure Linear MCP at project level with workspace scoping and secure token storage
+
 ### `agents/`
 Custom Claude agents for specialized tasks (frontend, backend, CI/CD, architecture review). Register in `.claude/settings.json` or invoke via `/agent-name`. Inherit ecosystem conventions and pre-authorized tools.
 
