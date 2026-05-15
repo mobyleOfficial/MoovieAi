@@ -136,14 +136,35 @@ Claude Code MCP plugins and servers (e.g., repo-management). Register in `.claud
 Linting configurations, formatter rules, ecosystem policies. Reference when style issues arise or when implementing ecosystem-wide standards.
 
 ### `skills/`
-Custom Claude workflows (superpowers skills, standardized documentation formats). Use when implementing repetitive patterns or cross-repo concerns.
+Custom Claude workflows for scaffolding features and standardized documentation. Organized into three categories:
 
-**Available Skills:**
-- `moovie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
-- `setting-up-linear-mcp` — Configure Linear MCP at project level with workspace scoping and secure token storage
+**Common Skills (Frontend & Backend):**
+- `moovie-research-format` — Standardized format for design docs, architecture decisions, and research
+- `setting-up-linear-mcp` — Configure Linear MCP at project level with workspace scoping
+- `verify-docs-before-pr` — Documentation verification before PR creation
+
+**Frontend Skills (Flutter/Dart):**
+- `/new-usecase` — Scaffold a domain usecase with Result<T> error handling
+- `/new-datasource` — Scaffold a remote/local datasource (Dio HTTP or local)
+- `/new-repository` — Scaffold domain/data repository pair
+- `/new-ui-module` — Scaffold a complete UI module (bloc/screen/state)
+
+**Backend Skills (Kotlin/Ktor):**
+- `/new-kotlin-usecase` — Scaffold a business logic usecase with operator invoke()
+- `/new-kotlin-datasource` — Scaffold a Ktor HTTP client datasource
+- `/new-kotlin-repository` — Scaffold domain/data repository pair with DTO mapping
+- `/new-ktor-endpoint` — Scaffold an API endpoint with routing and DI
 
 ### `agents/`
-Custom Claude agents for specialized tasks (frontend, backend, CI/CD, architecture review). Register in `.claude/settings.json` or invoke via `/agent-name`. Inherit ecosystem conventions and pre-authorized tools.
+Custom Claude agents for specialized tasks across the feature development pipeline:
+- **pm-spec** — Writes feature specifications from requests
+- **architect-review** — Reviews specs for feasibility and alignment
+- **implementer-tester** — Implements Flutter/Dart features (moovie/)
+- **backend-implementer** — Implements Kotlin/Ktor features (backend/)
+- **code-reviewer** — Reviews code quality across both submodules
+- **validator** — Final pre-merge validation
+
+Register in `.claude/settings.json` or invoke via `/agent-name`. All agents inherit ecosystem conventions and pre-authorized tools.
 
 ---
 
@@ -291,10 +312,16 @@ At the start of each session, load these resources:
 - `linear` — Linear workspace integration (configured in `.mcp.json`)
 
 **3. Skills** — Custom Claude workflows:
-- `setting-up-linear-mcp` — Configure Linear MCP for workspace-specific project and secure token storage
-- `moovie-research-format` — Standardized format for design docs, architecture decisions, research
-- `verify-docs-before-pr` — Documentation verification before PR creation
-- Additional skills auto-discoverable via `local-skills` marketplace in `.claude/settings.json`
+- **Common:** `setting-up-linear-mcp`, `moovie-research-format`, `verify-docs-before-pr`
+- **Frontend:** `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`
+- **Backend:** `/new-kotlin-usecase`, `/new-kotlin-datasource`, `/new-kotlin-repository`, `/new-ktor-endpoint`
+- All skills auto-discoverable via `local-skills` marketplace in `.claude/settings.json`
+
+**4. Agents** — Specialized Claude workflows for feature development pipeline:
+- Use `/implementer-tester` for Flutter/Dart feature implementation
+- Use `/backend-implementer` for Kotlin/Ktor backend feature implementation
+- Use `/architect-review` for spec feasibility review
+- Use `/code-reviewer` for code quality validation
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
