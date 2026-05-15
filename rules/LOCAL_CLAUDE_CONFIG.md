@@ -38,7 +38,7 @@
   "mcpServers": {
     "local": {
       "command": "node",
-      "args": ["../plugins/my-plugin/dist/index.js"]  // ✅ Relative to project root
+      "args": ["./plugins/my-plugin/dist/index.js"]  // ✅ Relative to project root
     }
   }
 }
@@ -46,8 +46,9 @@
 
 ## Enforcement
 
-- Pre-commit hook scans `.claude/*.json` for forbidden patterns
-- Blocks commits containing `~/` or `/Users/` in `.claude/` files
+- `UserPromptSubmit` hook (`.claude/validate-config.sh`) runs on every prompt
+- Scans `.claude/settings.json`, `.claude/settings.local.json`, and `.mcp.json` (repo root) for forbidden patterns
+- Blocks the prompt if any file contains `~/`, `/Users/`, `/home/`, `/root/`, or `$HOME`
 - Hook error message shows exact violations and locations
 - Secrets go in `.claude/settings.local.json` (gitignored)
 
