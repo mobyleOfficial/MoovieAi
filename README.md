@@ -4,11 +4,16 @@ Meta-repository for the Moovie ecosystem. Central hub for shared resources, AI-a
 
 ## Quick Start
 
-Clone with submodules:
+Clone with submodules and run the bootstrap script:
 ```bash
 git clone --recurse-submodules https://github.com/mobyleOfficial/MoovieAi
 cd MoovieAi
+./bootstrap.sh
 ```
+
+The bootstrap initializes submodules, installs root + plugin npm dependencies, marks `.claude/hooks/*.sh` executable, and seeds `.claude/settings.local.json` from a template. Idempotent — safe to re-run.
+
+After bootstrap, set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json` (gitignored) before using the Linear MCP server. See [`.claude/skills/setting-up-linear-mcp/SKILL.md`](.claude/skills/setting-up-linear-mcp/SKILL.md).
 
 ## Structure
 
