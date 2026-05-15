@@ -20,6 +20,17 @@ log() {
   printf '\n→ %s\n' "$*"
 }
 
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    printf 'ERROR: required command not found: %s\n' "$1" >&2
+    exit 1
+  fi
+}
+
+require git
+require npm
+require jq
+
 # --- 1. Submodules ------------------------------------------------------------
 
 log "Initializing submodules (moovie, backend)..."
@@ -29,7 +40,11 @@ git submodule update --init --recursive
 
 if [ -f package.json ]; then
   log "Installing root npm dependencies..."
-  npm install --silent
+  if [ -f package-lock.json ]; then
+    npm ci --silent
+  else
+    npm install --silent
+  fi
 fi
 
 # --- 3. Plugin deps + build ---------------------------------------------------
@@ -39,7 +54,11 @@ if [ -d plugins/repo-management ]; then
   (
     cd plugins/repo-management
     if [ -f package.json ]; then
-      npm install --silent
+      if [ -f package-lock.json ]; then
+        npm ci --silent
+      else
+        npm install --silent
+      fi
     fi
     if [ -f package.json ] && jq -e '.scripts.build' package.json >/dev/null 2>&1; then
       npm run build --silent
@@ -51,7 +70,7 @@ fi
 
 if [ -d .claude/hooks ]; then
   log "Marking .claude/hooks/*.sh executable..."
-  chmod +x .claude/hooks/*.sh
+  chmod +x .claude/hooks/*.sh 2>/dev/null || true
 fi
 if [ -d .claude ]; then
   chmod +x .claude/*.sh 2>/dev/null || true
