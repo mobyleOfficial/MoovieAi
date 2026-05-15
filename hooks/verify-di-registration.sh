@@ -1,0 +1,74 @@
+#!/bin/bash
+# .claude/hooks/verify-di-registration.sh
+# Verifies every @module file in lib/di/ is wired into lib/di/injection.config.dart.
+# Define this as a Stop hook in the implementer-tester agent's frontmatter.
+# Missing wiring causes `GetIt: Object/factory not registered` at runtime —
+# the #1 trap called out in CLAUDE.md.
+
+set -e
+
+input=$(cat)
+di_dir="lib/di"
+config="lib/di/injection.config.dart"
+
+if [ ! -d "$di_dir" ] || [ ! -f "$config" ]; then
+  exit 0
+fi
+
+missing=""
+
+# For every <name>_module.dart in lib/di/, look up the class name it defines
+# and verify both the import path and the _$<ClassName>() instantiation appear
+# in injection.config.dart.
+while IFS= read -r module_file; do
+  rel="${module_file#./}"
+  base=$(basename "$module_file" .dart)
+  # Skip the generated config itself
+  [ "$base" = "injection.config" ] && continue
+  [ "$base" = "injection" ] && continue
+
+  # Class name comes from the file via "class <ClassName>"
+  class_name=$(grep -E "^abstract class |^class " "$module_file" | head -n 1 | awk '{print $NF}' | sed 's/[ <{].*//')
+  if [ -z "$class_name" ]; then
+    continue
+  fi
+
+  if ! grep -qF "$rel" "$config"; then
+    missing+="\n  - $rel is not imported in $config"
+  fi
+  if ! grep -qE "_\\\$${class_name}\\(\\)" "$config"; then
+    missing+="\n  - $class_name is not instantiated (expected '_\$${class_name}()') in $config"
+  fi
+done < <(find "$di_dir" -maxdepth 1 -type f -name "*_module.dart")
+
+# Also check that every @injectable/@lazySingleton/@singleton class registered
+# anywhere in features/ or lib/ shows up at least by name in injection.config.dart.
+# (Use-case factory classes are the common forget-to-register case.)
+while IFS= read -r dart_file; do
+  # Find class names annotated with @injectable / @lazySingleton / @singleton on the preceding line
+  annotated_classes=$(awk '
+    /^@(injectable|lazySingleton|singleton|LazySingleton|Singleton|Injectable)/ { capture = 1; next }
+    capture && /^class / { gsub(/[<{].*/,"",$2); print $2; capture = 0; next }
+    /^[^@]/ && !/^$/ { capture = 0 }
+  ' "$dart_file")
+
+  while IFS= read -r class_name; do
+    [ -z "$class_name" ] && continue
+    if ! grep -qE "\\b${class_name}\\b" "$config"; then
+      missing+="\n  - $class_name (in ${dart_file#./}) is annotated but not referenced in $config"
+    fi
+  done <<< "$annotated_classes"
+done < <(find features lib -type f -name "*.dart" 2>/dev/null | grep -vE "(\.g\.dart|\.gr\.dart|injection\.config\.dart)$")
+
+if [ -n "$missing" ]; then
+  echo "Blocked: DI registration is incomplete — the app will crash at runtime." >&2
+  printf "%b" "$missing" >&2
+  echo "" >&2
+  echo "Update lib/di/injection.config.dart per the CLAUDE.md DI checklist:" >&2
+  echo "  1. Add the import for the module/feature package." >&2
+  echo "  2. Instantiate the module via _\$ModuleName() inside init()." >&2
+  echo "  3. Register data sources, repositories, and use cases in dependency order." >&2
+  exit 2
+fi
+
+exit 0
