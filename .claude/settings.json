@@ -35,12 +35,43 @@
     "command": "./.claude/statusline.sh"
   },
   "hooks": {
+    "SessionStart": [{
+      "matcher": ".*",
+      "hooks": [{
+        "type": "command",
+        "command": "./.claude/hooks/session-start.sh"
+      }]
+    }],
     "UserPromptSubmit": [{
       "matcher": ".*",
       "hooks": [{
         "type": "command",
         "command": "./.claude/validate-config.sh",
         "statusMessage": "Validating Claude config portability..."
+      }]
+    }],
+    "PreToolUse": [{
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./.claude/hooks/block-destructive-commands.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-coauthor.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-python-env.sh"
+        }
+      ]
+    }],
+    "PostToolUse": [{
+      "matcher": "Edit|Write",
+      "hooks": [{
+        "type": "command",
+        "command": "./.claude/hooks/format-code.sh"
       }]
     }]
   }
