@@ -127,7 +127,7 @@ Root `package.json` is **untracked** (`?? package.json` per `git status`) — a 
 ### Issue 5 — Secret leakage path
 **Symptom:** Linear API token in `.claude/settings.local.json` is plain text.
 
-**Root cause:** File is gitignored [Source: `.gitignore` line 51, "Local overrides"], so the token never reaches the remote. However, any conversation that reads this file ingests the token into chat history, transcripts, or telemetry. Current session has already done so.
+**Root cause:** File is gitignored [Source: `.gitignore` line 44, "Local overrides"], so the token never reaches the remote. However, any conversation that reads this file ingests the token into chat history, transcripts, or telemetry. Current session has already done so.
 
 **Impact:** Token exposure to external systems (LLM provider logs, screenshare, copy-paste). Token must be rotated.
 
@@ -278,7 +278,9 @@ Companion file `.claude/settings.local.template.json`:
 }
 ```
 
-Commit `package.json` and `package-lock.json` to the repo (currently untracked).
+Commit `package.json` to the repo (currently untracked).
+
+**Sub-step — unignore `package-lock.json`:** `.gitignore` line 3 currently lists `package-lock.json` under `# Dependencies`. Remove that line. Rationale: locked dependency versions are required for the bootstrap script's reproducibility goal stated in Issue 4 — without a tracked lockfile, `npm install` on a fresh clone resolves whatever satisfies the semver ranges in `package.json` at install time, breaking determinism. After removal, commit `package-lock.json` alongside `package.json`.
 
 ### Phase 5 — Doc cleanup
 - Update `skills/README.md` to list only real skills.
@@ -293,7 +295,7 @@ Commit `package.json` and `package-lock.json` to the repo (currently untracked).
 | 1 — MCP consolidation | `.claude/settings.json`, `.claude/.mcp.json` → `.mcp.json` | Claude Code MCP server status |
 | 2 — Skill restructure | `skills/**` → `.claude/skills/**`, `.claude/settings.json` | `/skill` picker lists 3 skills |
 | 3 — Rule hooks | 3 new `.claude/*.sh`, `.claude/settings.json` | Hook fires on `git commit` with coauthor → blocks |
-| 4 — Bootstrap script | new `bootstrap.sh`, new `.claude/settings.local.template.json`, track `package.json`, `package-lock.json` | Fresh clone + `./bootstrap.sh` → functional Claude Code |
+| 4 — Bootstrap script | new `bootstrap.sh`, new `.claude/settings.local.template.json`, unignore `package-lock.json` in `.gitignore`, track `package.json` + `package-lock.json` | Fresh clone + `./bootstrap.sh` → functional Claude Code |
 | 5 — Doc cleanup | `README.md`, `CLAUDE.md`, `skills/README.md`, `agents/README.md` | Manual read-through |
 
 Estimated effort: 2–3 hours focused work. No code changes to submodules.
@@ -321,7 +323,7 @@ Estimated effort: 2–3 hours focused work. No code changes to submodules.
 
 ## Next Steps / Action Items
 
-- [ ] **Rotate Linear API token.** Owner: maintainer. By: immediately. Token in `settings.local.json` is in session history.
+- [x] ~~**Rotate Linear API token.** Owner: maintainer. By: immediately. Token in `settings.local.json` is in session history.~~ **Deferred 2026-05-15 per Decision gate — risk accepted by maintainer.** Re-flag if session transcript is shared externally.
 - [ ] **Approve plan.** Owner: maintainer. By: before Phase 1 starts.
 - [ ] **Execute Phase 1 (MCP consolidation).** Owner: Claude. By: same session. Dependency: approval.
 - [ ] **Execute Phase 2 (skill restructure).** Owner: Claude. By: same session.
@@ -338,3 +340,16 @@ Estimated effort: 2–3 hours focused work. No code changes to submodules.
 - Linear token rotation: **deferred, risk accepted.** Token remains in session history. Re-flag if shared in future external context.
 
 Next gate: maintainer runs `/ultrareview` against the branch hosting this doc. This audit serves as the briefing. Implementation begins after `/ultrareview` results are reviewed.
+
+## Ultrareview Outcomes (2026-05-15)
+
+`/ultrareview` run against PR #4 returned 4 findings. All in-scope corrections applied to this doc; out-of-scope items mapped to implementation phases.
+
+| ID | Severity | Status | Disposition |
+|----|----------|--------|-------------|
+| `bug_019` | nit | Fixed in this PR | Internal contradiction on Linear token rotation — action item marked deferred to align with Decision gate. |
+| `bug_032` | normal | Fixed in this PR | (a) Issue 5 citation `.gitignore` line 51 → corrected to line 44 (file is 44 lines). (b) Phase 4 sub-step added: unignore `package-lock.json` before committing it, with reproducibility rationale. |
+| `bug_002` | pre_existing nit | Deferred to Phase 1 | CLAUDE.md line 291 says `linear` configured in `.mcp.json` but it's in `.claude/settings.json`. Phase 1 (MCP consolidation) makes the statement accurate by moving config to a single repo-root `.mcp.json`. |
+| `merged_bug_006` | nit | Deferred to Phase 1/2 | `.claude/settings.json` and `skills/setting-up-linear-mcp/SKILL.md` diverge on `LINEAR_WORKSPACE_ID` / `LINEAR_PROJECT_ID` placement. Both files are uncommitted modifications outside this PR's scope. Phase 1 consolidation + Phase 2 skill restructure must align them — note: `linear-mcp` (dvcrn) only consumes `LINEAR_ACCESS_TOKEN`, so the scoping vars are inert today; pick one placement for documentation consistency. |
+
+**Validation of audit thesis:** No findings contradicted the audit's 7 identified issues or the recommended Option 2 + Layout A path. Findings refined precision (line numbers, internal consistency) and surfaced one implementation conflict (`.gitignore` vs Phase 4 commit list) that is now explicitly resolved in the plan.
