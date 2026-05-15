@@ -1,0 +1,8 @@
+{
+  "env": {
+    "LINEAR_ACCESS_TOKEN": ""
+  },
+  "permissions": {
+    "allow": []
+  }
+}

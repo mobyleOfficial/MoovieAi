@@ -1,0 +1,35 @@
+{
+  "current_stage": "idle",
+  "feature": null,
+  "stages": [
+    {
+      "name": "spec",
+      "agent": "pm-spec",
+      "status": "pending",
+      "input": null,
+      "output": null
+    },
+    {
+      "name": "review",
+      "agent": "architect-review",
+      "status": "pending",
+      "input": null,
+      "output": null
+    },
+    {
+      "name": "implement",
+      "agent": "implementer-tester",
+      "status": "pending",
+      "input": null,
+      "output": null
+    },
+    {
+      "name": "code-review",
+      "agent": "code-review",
+      "status": "pending",
+      "input": null,
+      "output": null
+    }
+  ],
+  "history": []
+}
