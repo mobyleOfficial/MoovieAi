@@ -13,16 +13,17 @@ if [ -z "$command" ]; then
   exit 0
 fi
 
-# Only inspect actual `git commit` invocations — match the first command in a
-# pipeline/chain so quoted strings or echo'd examples don't trigger.
-first_token=$(echo "$command" | awk '{print $1}' | awk -F'[|;&]' '{print $NF}')
-first_arg=$(echo "$command" | awk '{print $2}')
-
-if [ "$first_token" != "git" ] || [ "$first_arg" != "commit" ]; then
+# Match `git commit` as an actual invocation: at the start of the command,
+# after a chain operator (`;`, `&&`, `||`), or after one or more env-var
+# prefixes (`FOO=bar git commit`). Quoted occurrences inside echo/printf
+# strings do not match because the preceding character is a quote, not a
+# chain operator.
+if ! echo "$command" | grep -qE '(^|[;&|][[:space:]]*)([A-Z_][A-Za-z0-9_]*=[^[:space:]]+[[:space:]]+)*git[[:space:]]+commit'; then
   exit 0
 fi
 
-if echo "$command" | grep -qiE 'Co-?Authored-?By'; then
+# Look for Co-Authored-By trailers (case-insensitive; with or without hyphens)
+if echo "$command" | grep -qiE 'Co[-]?Authored[-]?By'; then
   echo "❌ NO_COAUTHORS rule violation: commit message contains a Co-Authored-By trailer." >&2
   echo "   See rules/NO_COAUTHORS.md — single author per commit, always." >&2
   exit 2

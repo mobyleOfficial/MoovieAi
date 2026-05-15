@@ -4,19 +4,46 @@
 # Register as SessionStart hook in .claude/settings.json.
 # Keep output short — every session opens with this.
 
-set -e
+set -eu
 
-# Skip if not in MoovieAi repo (defensive)
-if [ ! -f .mcp.json ] || [ ! -f CLAUDE.md ]; then
-  exit 0
+# Locate repo root so the hook works regardless of the session's cwd.
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+
+# Defensive: bail silently if this looks like the wrong repo.
+[ -f "$repo_root/.mcp.json" ] || exit 0
+[ -f "$repo_root/CLAUDE.md" ] || exit 0
+
+shopt -s nullglob
+rule_files=("$repo_root"/rules/*.md)
+skill_dirs=("$repo_root"/.claude/skills/*/)
+shopt -u nullglob
+
+# Filter out README.md (directory readme, not a rule)
+filtered_rules=()
+for f in "${rule_files[@]:-}"; do
+  name=$(basename "$f" .md)
+  [ "$name" = "README" ] && continue
+  filtered_rules+=("$name")
+done
+
+rule_count=${#filtered_rules[@]}
+skill_count=${#skill_dirs[@]}
+
+mcp_count=0
+if command -v jq >/dev/null 2>&1; then
+  mcp_count=$(jq -r '.mcpServers | length' "$repo_root/.mcp.json" 2>/dev/null || echo 0)
 fi
 
-rule_count=$(ls rules/*.md 2>/dev/null | wc -l | tr -d ' ')
-skill_count=$(ls -d .claude/skills/*/ 2>/dev/null | wc -l | tr -d ' ')
-mcp_count=$(jq -r '.mcpServers | length' .mcp.json 2>/dev/null || echo 0)
+rule_names=$(IFS=, ; echo "${filtered_rules[*]}" | sed 's/,/, /g')
+
+skill_names=""
+for d in "${skill_dirs[@]:-}"; do
+  name=$(basename "$d")
+  skill_names="${skill_names:+$skill_names, }$name"
+done
 
 echo "MoovieAi session — ${rule_count} rules, ${skill_count} skills, ${mcp_count} MCP servers loaded."
-echo "  Rules: $(ls rules/*.md 2>/dev/null | xargs -n1 basename | sed 's/.md//' | paste -sd, -)"
-echo "  Skills: $(ls -d .claude/skills/*/ 2>/dev/null | xargs -n1 basename | paste -sd, -)"
+[ -n "$rule_names" ] && echo "  Rules: $rule_names"
+[ -n "$skill_names" ] && echo "  Skills: $skill_names"
 
 exit 0
