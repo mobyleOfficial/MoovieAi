@@ -18,7 +18,7 @@ For example, `Skill("moovie-research-format")` to start formatted research, or `
 
 ## Scaffolding Workflows
 
-Flutter scaffolding (new feature, datasource, repository, usecase, UI module) lives under [`commands/`](../../commands/) at the repo root and is invoked via slash commands (`/new-usecase`, `/new-datasource`, etc.) — not as skills. See [`agents/implementer-tester.md`](../../agents/implementer-tester.md) for pipeline usage.
+Flutter scaffolding (new datasource, repository, usecase, UI module) lives under [`commands/`](../../commands/) at the repo root and is invoked via slash commands (`/new-datasource`, `/new-repository`, `/new-usecase`, `/new-ui-module`) — not as skills. See [`agents/implementer-tester.md`](../../agents/implementer-tester.md) for pipeline usage.
 
 ## Adding a New Skill
 
