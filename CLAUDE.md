@@ -276,6 +276,28 @@ The project includes a **context usage statusline** showing:
 
 Displays automatically in the bottom right. Helps identify when to compact conversations. No setup needed — included in `.claude/settings.json`.
 
+### Load Rules, Plugins, and Skills (Every Session)
+
+At the start of each session, load these resources:
+
+**1. Rules** — Organizational policies that govern all work:
+- [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` config must use portable relative paths, no `~/` or absolute user paths
+- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (moovie, backend) must remain AI-agnostic, no CLAUDE.md/.claude/ in submodules
+- [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use Co-Authored-By trailers in commits, single author always
+- [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python dependencies must be in local venv, never global install
+
+**2. Plugins** — MCP servers available in this project:
+- `repo-management` — Manage submodules, branches, PRs (configured in `.mcp.json`)
+- `linear` — Linear workspace integration (configured in `.mcp.json`)
+
+**3. Skills** — Custom Claude workflows:
+- `setting-up-linear-mcp` — Configure Linear MCP for workspace-specific project and secure token storage
+- `moovie-research-format` — Standardized format for design docs, architecture decisions, research
+- `verify-docs-before-pr` — Documentation verification before PR creation
+- Additional skills auto-discoverable via `local-skills` marketplace in `.claude/settings.json`
+
+These resources are binding for all work in this repo. Obey rules before suggesting code.
+
 ### Linear MCP (First Time)
 
 If you don't have Linear MCP configured:
