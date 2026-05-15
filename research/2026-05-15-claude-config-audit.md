@@ -353,3 +353,112 @@ Next gate: maintainer runs `/ultrareview` against the branch hosting this doc. T
 | `merged_bug_006` | nit | Deferred to Phase 1/2 | `.claude/settings.json` and `skills/setting-up-linear-mcp/SKILL.md` diverge on `LINEAR_WORKSPACE_ID` / `LINEAR_PROJECT_ID` placement. Both files are uncommitted modifications outside this PR's scope. Phase 1 consolidation + Phase 2 skill restructure must align them — note: `linear-mcp` (dvcrn) only consumes `LINEAR_ACCESS_TOKEN`, so the scoping vars are inert today; pick one placement for documentation consistency. |
 
 **Validation of audit thesis:** No findings contradicted the audit's 7 identified issues or the recommended Option 2 + Layout A path. Findings refined precision (line numbers, internal consistency) and surfaced one implementation conflict (`.gitignore` vs Phase 4 commit list) that is now explicitly resolved in the plan.
+
+---
+
+## Post-Merge Update (2026-05-15, after PR #3)
+
+While this audit was in review, `main` advanced by 3 commits (`2f5934a`, `06d4497`, `db5b3c8` — PR #3 "Add new rules and subagents" + "[task] Update skills"). This branch was merged with `origin/main` to incorporate the new state. 39 net-new files were added across **6 top-level concerns** not present when the original audit was written:
+
+| Concern | Files | Location | Status |
+|---------|-------|----------|--------|
+| Pipeline agents | 5 (`pm-spec`, `architect-review`, `implementer-tester`, `code-review`, `validator`) | `agents/*.md` | Added |
+| Scaffolding commands | 4 (`new-datasource`, `new-repository`, `new-usecase`, `new-ui-module`) | `commands/*.md` | Added |
+| Scaffolding skills (duplicate of commands) | 4 (same names as commands) | `skills/*.md` (flat) | Added |
+| Pipeline / safety hooks | 13 (`pipeline-coordinator`, `block-destructive-commands`, `enforce-path-restrictions`, etc.) | `hooks/*.sh` | Added but unregistered |
+| Flutter-specific rules | 7 (`feature-architecture`, `feature-implementation`, `feature-testing`, `ui-architecture`, `localization`, `accessibility`, `variable-naming`) | `rules/*.md` | Added |
+| Pipeline state | 2 (`pipeline-queue.json`, `template.md`) | `task/*` | Added (with completed snapshot for `movie-details-update`) |
+| Secondary CLAUDE.md | 1 | `.claude/CLAUDE.md` | Added (content is wrong — see Issue 14) |
+| Research subdirs | 4 (`specs/`, `reviews/`, `requests/`, `archive/`) | `research/*/` | Added (deviates from `moovie-research-format`) |
+
+The pipeline architecture is designed as a 5-stage AI feature-development workflow (pm-spec → architect-review → implementer-tester → code-review → validator), with `task/pipeline-queue.json` tracking stage state and hooks coordinating transitions. One feature (`movie-details-update`) has been run through it end-to-end [Source: task/pipeline-queue.json].
+
+### Additional Issues Identified (Post-Merge)
+
+Eight new issues found. Numbering continues from the original 7.
+
+#### Issue 8 — `hooks/` directory is orphaned (not registered)
+**Symptom:** 13 hook scripts exist as executable shell files; none fire.
+
+**Root cause:** `.claude/settings.json` declares only one hook (`UserPromptSubmit` → `./.claude/validate-config.sh`) [Source: `.claude/settings.json` lines 62-71]. None of the 13 scripts in `hooks/` are referenced. Without registration in `settings.json` (`PreToolUse`, `Stop`, `PostToolUse`, etc.), Claude Code does not invoke them.
+
+**Impact:** Pipeline coordination is non-functional. Safety hooks (`block-destructive-commands`, `enforce-path-restrictions`) provide no protection. Format-on-save and DI-verification hooks never run.
+
+#### Issue 9 — Hook script paths reference wrong location
+**Symptom:** Hook comments say `# .claude/hooks/<name>.sh` but files live at `hooks/<name>.sh` (repo root).
+
+**Root cause:** Comment-headers were written assuming hooks would be under `.claude/hooks/`, but the actual files were committed to `hooks/` at repo root [Source: `hooks/block-destructive-commands.sh` line 2; `hooks/pipeline-coordinator.sh` line 2]. Worse, `pipeline-coordinator.sh` line 10 reads from `.claude/task/pipeline-queue.json` — a path that does not exist (the file is at `task/pipeline-queue.json` repo-root). The hook exits cleanly with no error because the missing-file branch returns 0 [Source: `hooks/pipeline-coordinator.sh` lines 12-15].
+
+**Impact:** Even if hooks were registered, `pipeline-coordinator.sh` reads from a path that does not exist → silently exits with status 0 → pipeline progression breaks with no error surface.
+
+#### Issue 10 — `.claude/CLAUDE.md` content is wrong
+**Symptom:** Secondary CLAUDE.md in `.claude/` describes a Flutter app called "moowvies", lists `flutter pub get` as the build command, and declares "Never ask for permission to apply changes — just do it" as a project-wide override.
+
+**Root cause:** File appears to have been authored for the `moovie/` submodule (Flutter app) but was placed in the meta-repo's `.claude/` directory [Source: `.claude/CLAUDE.md` lines 5, 8-13, 16-19]. Frontmatter uses `alwaysApply: true` — a non-standard field outside Claude Code's documented frontmatter schema [Source: `.claude/CLAUDE.md` lines 1-3].
+
+**Impact (severe):** The `Never ask for permission` line overrides Claude Code's default safety posture for *every* session in this repo, including destructive operations. The Flutter-specific build/test commands mislead any session that reads this file as ecosystem guidance. The non-standard frontmatter is silently ignored — its presence implies enforcement that does not exist.
+
+#### Issue 11 — Skills and commands duplicate for 4 scaffolders
+**Symptom:** `commands/new-datasource.md` and `skills/new-datasource.md` both exist (and analogous pairs for `new-repository`, `new-usecase`, `new-ui-module`).
+
+**Root cause:** Slash commands and skills are two distinct Claude Code mechanisms. Both files contain similar scaffolding instructions for the same feature [Source: `commands/new-datasource.md` lines 1-40; `skills/new-datasource.md` lines 1-40]. Maintenance burden doubles; divergence is inevitable.
+
+**Impact:** Edits to one file are not reflected in the other. Users invoking `/new-datasource` (command) get one set of instructions; `Skill("new-datasource")` (skill) gets another. Already drifts in details.
+
+#### Issue 12 — Skills directory mixes flat-file and subdirectory layouts
+**Symptom:** `skills/` contains a mix of structures:
+- Subdirectory + `SKILL.md`: `moovie-research-format/`, `setting-up-linear-mcp/`
+- Flat `.md`: `verify-docs-before-pr.md`, `new-datasource.md`, `new-repository.md`, `new-usecase.md`, `new-ui-module.md`
+
+**Root cause:** No enforced convention. Original 3 ecosystem skills used subdir layout; the 4 scaffolders added in PR #3 used flat-file layout.
+
+**Impact:** When Phase 2 moves skills to `.claude/skills/`, the target layout (subdir + SKILL.md per Claude Code convention) must be uniformly applied. 5 flat files must be promoted to subdirectories.
+
+#### Issue 13 — Pipeline queue snapshot committed as runtime state
+**Symptom:** `task/pipeline-queue.json` is committed with a completed snapshot of one specific feature (`movie-details-update`) including timestamps and stage history.
+
+**Root cause:** Pipeline state is runtime artifact tracking the *current* feature being worked on. Committing it pins one feature's history to the repo, conflates state with code, and makes the file unsuitable for next-feature reuse [Source: `task/pipeline-queue.json`].
+
+**Impact:** Next contributor to start a pipeline run must either edit/overwrite this committed state (polluting git history with stage transitions) or duplicate the file elsewhere. Should be gitignored with a template (`task/template.md` already exists as the per-feature task template — same idea applies to queue).
+
+#### Issue 14 — New Flutter-specific rules unenforced (same gap as original 4)
+**Symptom:** 7 new rules added in PR #3 (`feature-architecture`, `feature-implementation`, `feature-testing`, `ui-architecture`, `localization`, `accessibility`, `variable-naming`) are markdown-only.
+
+**Root cause:** Same enforcement pattern as the original 4 rules from the audit's Issue 3 — rules live as documentation, compliance relies on Claude reading them. Several of the 13 added hooks (`validate-implementation.sh`, `validate-localization.sh`, `validate-module-structure.sh`, `verify-di-registration.sh`) appear designed to enforce these rules, but they are not registered (Issue 8) so enforcement is theoretical.
+
+**Impact:** Existing audit Issue 3 expands from 4 unenforced rules to 11.
+
+#### Issue 15 — `agents/README.md` names mismatch agent filenames
+**Symptom:** `agents/README.md` line 8 names the agent `code-reviewer` but the file is `agents/code-review.md` (agent's frontmatter name is `code-review`).
+
+**Root cause:** README written after agent file; one of the two was not updated when the other was renamed [Source: `agents/README.md` line 8; `agents/code-review.md` frontmatter].
+
+**Impact:** Invoking the agent by README's name fails. Documentation says one thing, runtime expects another.
+
+#### Issue 16 — Pre-PR-#4 local working changes still match a pending fix
+**Symptom:** Working tree carries uncommitted edits to `.claude/settings.json`, `CLAUDE.md`, `README.md`, `skills/setting-up-linear-mcp/SKILL.md`, plus untracked `package.json`. The diff renames the Linear MCP package from `@linear/mcp` (a non-existent package) to `linear-mcp` (the real dvcrn package) and renames `LINEAR_API_TOKEN` → `LINEAR_ACCESS_TOKEN` throughout.
+
+**Root cause:** Main's `.claude/settings.json` ships the broken `@linear/mcp` package reference with `LINEAR_API_TOKEN` env var — the wrong package name and the wrong env var name (the real `linear-mcp` package consumes `LINEAR_ACCESS_TOKEN`). The local working changes are the unmerged fix [Source: `git diff main -- .claude/settings.json`].
+
+**Impact:** On `main` today, Linear MCP cannot start. These working-tree edits should be folded into Phase 1 (MCP consolidation) so the fix lands as part of the canonical reset rather than as separate untracked edits.
+
+### Revised Phase Plan
+
+The 5 phases stand, but scope per phase expands. Phase 6 added for pipeline cleanup.
+
+| Phase | Original Scope | Expanded Scope |
+|-------|----------------|----------------|
+| 1 — MCP consolidation | Move `.mcp.json` to root, add `linear`, dedupe | **+** Fix Linear package name (`@linear/mcp` → `linear-mcp`), env var rename (`LINEAR_API_TOKEN` → `LINEAR_ACCESS_TOKEN`), drop duplicate top-level scoping vars (Issue 16) |
+| 2 — Skill restructure | Move 3 skills to `.claude/skills/<name>/SKILL.md` | **+** Promote 4 flat scaffolding skills (`new-*`) to subdir + SKILL.md (Issue 12). **+** Resolve commands vs skills duplication (Issue 11) — see Open Decisions |
+| 3 — Rule + hook coverage | Add coauthor / python-env / session-start hooks | **+** Register the 13 existing `hooks/` scripts in `settings.json` (Issue 8). **+** Decide hook location: keep at `hooks/` or move to `.claude/hooks/` to match comments (Issue 9). **+** Fix `pipeline-coordinator.sh` task-queue path (Issue 9). **+** Wire rule-enforcement hooks to their rules (`validate-implementation.sh` ↔ `rules/feature-implementation.md`, etc.) |
+| 4 — Bootstrap script | `bootstrap.sh` + template + unignore lockfile | Unchanged. Bootstrap must also `chmod +x hooks/*.sh` if hooks remain at root |
+| 5 — Doc cleanup | Update `skills/README.md`, `agents/README.md`, root README, CLAUDE.md | **+** Rewrite or delete `.claude/CLAUDE.md` (Issue 10 — severe). **+** Fix agent name mismatch in `agents/README.md` (Issue 15). **+** Update `research/README.md` to acknowledge `specs/reviews/requests/archive/` subdirs OR realign with `moovie-research-format` |
+| **6 — Pipeline cleanup (new)** | n/a | Gitignore `task/pipeline-queue.json`, commit `task/template.md` as canonical empty queue (Issue 13). Decide pipeline asset location (top-level vs `.claude/`). Reconcile flat skills vs commands (Issue 11) |
+
+### Open Decisions (need maintainer input before Phases 2/3/5/6 land)
+
+1. **Commands vs skills.** Pick one for the 4 scaffolders. Recommendation: **keep `commands/`, drop `skills/new-*.md`** — slash commands are the user-facing trigger, and the agent files invoke them via `/new-*` syntax. Skills become a thin wrapper for non-scaffolding workflows (`moovie-research-format`, `setting-up-linear-mcp`, `verify-docs-before-pr`).
+2. **Hook location.** Keep `hooks/` at repo root, or move to `.claude/hooks/`? Comments and `pipeline-coordinator.sh:10` both reference `.claude/hooks/` and `.claude/task/`. Recommendation: **move to `.claude/hooks/` and `.claude/task/`** to align with what the scripts already assume.
+3. **`.claude/CLAUDE.md` disposition.** Three options: (a) delete entirely (its content belongs in the moovie submodule's local docs, not the meta-repo's `.claude/`); (b) rewrite as meta-repo guidance for Claude (rare — root `CLAUDE.md` already serves this purpose); (c) move to `moovie/AGENT_HINTS.md` or similar if a Flutter-specific subagent needs project hints — but `AI_AGNOSTIC_SUBMODULES` forbids placing AI config in submodules. Recommendation: **delete `.claude/CLAUDE.md`**; agents that need DI/Flutter context already read `CLAUDE.md` (root) and `rules/feature-*.md`.
+4. **Research subdirs vs `moovie-research-format`.** PR #3 added `research/specs/`, `research/reviews/`, `research/requests/`, `research/archive/` — none follow the `YYYY-MM-DD-topic.md` convention of `moovie-research-format`. Either the skill rule changes (allow subdir-based organization for pipeline outputs), or the pipeline-generated docs must be renamed/moved. Recommendation: **update `moovie-research-format` skill** to permit subdir-based pipeline outputs while retaining flat YYYY-MM-DD naming for ad-hoc research.
+5. **Folding working-tree Linear MCP fix into this PR.** Working tree carries the Linear MCP cleanup (Issue 16). Options: (a) include these edits in this PR before merging; (b) defer to Phase 1's PR. Recommendation: **defer to Phase 1** — keep this PR doc-only.
