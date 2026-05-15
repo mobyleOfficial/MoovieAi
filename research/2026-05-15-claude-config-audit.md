@@ -470,6 +470,12 @@ The 5 phases stand, but scope per phase expands. Phase 6 added for pipeline clea
 | 4 | Research subdirs vs `moovie-research-format` | **Update skill to allow subdirs.** Permit pipeline-generated docs in `specs/reviews/requests/archive/` subdirs. Keep flat `YYYY-MM-DD-topic.md` for ad-hoc research. |
 | 5 | Folding Linear MCP fix into this PR | **Defer to Phase 1.** Keep this PR doc-only. Working-tree edits will land with Phase 1's branch. |
 
+### Future Consideration — Linear Official Remote MCP
+
+The current setup uses `linear-mcp` (dvcrn, community-maintained, npm-distributed, runs locally via `npx`). Linear ships an official remote MCP server at `https://mcp.linear.app/sse`. Pros of migration: no `npm install` requirement, no network fetch on every clone, official support, OAuth-based auth instead of static token. Cons: requires Claude Code's remote MCP config syntax (HTTP/SSE transport) and per-developer OAuth flow. Re-evaluate in Phase 4 or 5 when bootstrap script lands — if dropped, the `linear-mcp` dep + npm install step + token storage flow all simplify.
+
+[Source: PR #6 review feedback by EdYuTo, 2026-05-15.]
+
 ### Scope of `.claude/CLAUDE.md` Rewrite (Phase 5)
 
 Per Decision 3, `.claude/CLAUDE.md` becomes Claude/tooling behavior. Candidate contents:

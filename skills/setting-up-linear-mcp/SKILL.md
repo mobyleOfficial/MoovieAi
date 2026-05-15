@@ -83,7 +83,7 @@ Ask Claude Code: "List my Linear issues" — Claude should surface issues from y
 
 ## Default Project
 
-This repo defaults to the `MOO` project in the `mobyle` workspace. The Linear MCP server itself does not consume a project ID — scoping happens at query time. When referencing issues in PRs or commits, use the `MOO-123` prefix.
+This repo defaults to the `MOO` project in the `mobyle` workspace. The `linear-mcp` server has no project filter — `MOO` is convention only, not enforcement. When referencing issues in PRs or commits, use the `MOO-123` prefix; the server will return any issue the token has access to regardless of project.
 
 ## Common Mistakes
 
