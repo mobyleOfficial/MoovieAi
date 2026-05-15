@@ -24,7 +24,20 @@ See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete developme
 
 ## Claude Code Integration
 
-This repo includes a **repo-management MCP plugin** that automates repository operations:
+This repo includes **Claude Code features** for streamlined development:
+
+### Statusline Context Tracker
+
+Real-time context usage monitoring in the status bar:
+- Current model name
+- Context window usage % (color-coded warnings)
+- Session and weekly rate limit usage (Pro/Max plans)
+
+Helps identify when to compact conversations. No setup needed.
+
+### Repo Management Plugin
+
+Automates repository operations:
 
 ```bash
 # Available tools in Claude Code sessions:

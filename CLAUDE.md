@@ -230,6 +230,8 @@ cd backend
 
 **Python Environments:** All Python dependencies MUST be installed in a local, project-specific Python environment. Never install globally. See [rules/PYTHON_ENVS.md](rules/PYTHON_ENVS.md).
 
+**Local Claude Config:** All `.claude/` configuration MUST use portable, relative paths. No global (`~/`) or absolute user paths. Enables config reuse across team. Validated on every prompt. See [rules/LOCAL_CLAUDE_CONFIG.md](rules/LOCAL_CLAUDE_CONFIG.md).
+
 ## Conventions
 
 ### Commit Messages
@@ -263,6 +265,15 @@ Handled by `repo-management` MCP server:
 ---
 
 ## Setup for New Sessions
+
+### Context Tracking (Statusline)
+
+The project includes a **context usage statusline** showing:
+- Model name
+- Context usage % (color-coded: green <70%, yellow 70-89%, red 90%+)
+- Session & weekly rate limit usage (Pro/Max plans)
+
+Displays automatically in the bottom right. Helps identify when to compact conversations. No setup needed — included in `.claude/settings.json`.
 
 ### Linear MCP (First Time)
 
