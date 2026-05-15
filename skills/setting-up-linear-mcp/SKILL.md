@@ -25,8 +25,34 @@ Navigate to: `https://linear.app/<workspace-name>/settings/api`
 
 Click **Create new** → Copy token (looks like `lin_api_xxx...`)
 
-**2. Add to `.claude/settings.json` (public config)**
+**2. Update `.claude/settings.json`**
 
+**If file exists:**
+Open `.claude/settings.json` and add `linear` entry to `mcpServers` object + add env vars:
+```json
+{
+  "mcpServers": {
+    "existing-server": { ... },
+    "linear": {
+      "command": "npx",
+      "args": ["@linear/mcp"],
+      "env": {
+        "LINEAR_WORKSPACE_ID": "workspace-slug",
+        "LINEAR_PROJECT_ID": "PROJECT-KEY",
+        "LINEAR_API_TOKEN": "${LINEAR_API_TOKEN}"
+      }
+    }
+  },
+  "env": {
+    "LINEAR_WORKSPACE_ID": "workspace-slug",
+    "LINEAR_PROJECT_ID": "PROJECT-KEY"
+  },
+  "permissions": { ... }
+}
+```
+
+**If file doesn't exist:**
+Create `.claude/settings.json`:
 ```json
 {
   "mcpServers": {
@@ -47,13 +73,26 @@ Click **Create new** → Copy token (looks like `lin_api_xxx...`)
 }
 ```
 
-Replace:
+Replace placeholders:
 - `workspace-slug` — from Linear URL: `linear.app/[workspace-slug]/...`
 - `PROJECT-KEY` — team key (MOO, ENG, PROJ, etc)
-- `${LINEAR_API_TOKEN}` — reference to local token (don't hardcode)
+- `${LINEAR_API_TOKEN}` — token reference (don't hardcode actual value)
 
-**3. Create `.claude/settings.local.json` (secret, gitignored)**
+**3. Update `.claude/settings.local.json`**
 
+**If file exists:**
+Add to `env` object (merge with existing vars):
+```json
+{
+  "env": {
+    "EXISTING_VAR": "...",
+    "LINEAR_API_TOKEN": "lin_api_xxx..."
+  }
+}
+```
+
+**If file doesn't exist:**
+Create `.claude/settings.local.json`:
 ```json
 {
   "env": {
@@ -62,18 +101,20 @@ Replace:
 }
 ```
 
-Paste your token here. Stays local, never committed.
+Paste your actual token here. Never commit this file.
 
-**4. Verify `.gitignore` includes local settings**
+**4. Verify `.gitignore`**
 
-Add or verify in `.gitignore`:
+Ensure `.gitignore` contains:
 ```
 .claude/settings.local.json
 ```
 
+If missing, add it.
+
 **5. Restart Claude Code**
 
-Settings reload automatically on session start. Force restart if connecting immediately.
+Settings reload on session start. Force restart if connecting immediately.
 
 ## Verify Connection
 
