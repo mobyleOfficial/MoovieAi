@@ -4,11 +4,19 @@ Custom Claude agents for specialized tasks in the MoovieAi ecosystem. These form
 
 ## Available Agents
 
+### Feature Pipeline
+
 - **pm-spec** — Product manager that writes feature specifications for the ecosystem
 - **architect-review** — Technical architect that reviews specs for feasibility and ecosystem alignment
 - **implementer-tester** — Flutter/Dart implementer that builds features in the moovie submodule with full test coverage
 - **code-review** — Code review specialist that validates code quality across moovie and backend submodules
 - **validator** — Strict read-only validator that catches issues before merge
+
+### PR Review
+
+- **reviewer** — Orchestrates a multi-pass GitHub PR review. Dispatches three specialized sub-reviewers in parallel (security / bug-finder / architecture), validates findings, deduplicates, and posts inline comments. Re-review aware: marks resolved threads and only posts net-new findings. Invoke via `/review-pr <N>`.
+
+Sub-reviewer prompts live in [`reviewers/`](reviewers/).
 
 ## Pipeline Usage
 
