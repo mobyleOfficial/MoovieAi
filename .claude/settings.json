@@ -9,12 +9,14 @@
       "args": ["@linear/mcp"],
       "env": {
         "LINEAR_WORKSPACE_ID": "mobyle",
+        "LINEAR_PROJECT_ID": "MOO",
         "LINEAR_API_TOKEN": "${LINEAR_API_TOKEN}"
       }
     }
   },
   "env": {
-    "LINEAR_WORKSPACE_ID": "mobyle"
+    "LINEAR_WORKSPACE_ID": "mobyle",
+    "LINEAR_PROJECT_ID": "MOO"
   },
   "permissions": {
     "allow": [
