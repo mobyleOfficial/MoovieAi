@@ -258,6 +258,20 @@ Handled by `repo-management` MCP server:
 
 ---
 
+## Setup for New Sessions
+
+### Linear MCP (First Time)
+
+If you don't have Linear MCP configured:
+1. Use skill: `setting-up-linear-mcp`
+2. Generate API token: https://linear.app/mobyle/settings/api
+3. Update `.claude/settings.json` + `.claude/settings.local.json`
+4. Restart Claude Code
+
+Default project: MOO (Moovie). Token stored securely in `.local.json` (gitignored).
+
+---
+
 ## Notes for Claude Instances
 
 When working in child repos (moovie or backend):
@@ -267,3 +281,8 @@ When working in child repos (moovie or backend):
 - Update submodule references in the meta-repo after merging changes
 - **Follow NO_COAUTHORS rule strictly** — single author on all commits
 - If adding new shared resources, document them here
+
+When using Linear in Claude Code:
+- Linear MCP defaults to MOO project (Moovie)
+- Create issue references: `MOO-123`, `MOO-456`
+- Link issues in PRs via description: "Closes MOO-123"
