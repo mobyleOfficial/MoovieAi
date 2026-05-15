@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Plugin build output (rebuilt by bootstrap.sh)
+plugins/*/dist/
+
 # Python
 venv/
 .venv/
