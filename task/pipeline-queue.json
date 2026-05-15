@@ -21,13 +21,13 @@
       "agent": "implementer-tester",
       "status": "completed",
       "input": "research/specs/update-movie-review-screen.md",
-      "output": "{features,ui,lib}/**"
+      "output": "moovie/{features,ui,lib}/**"
     },
     {
       "name": "code-review",
-      "agent": "code-review",
+      "agent": "code-reviewer",
       "status": "completed",
-      "input": "{features,ui,lib}/**",
+      "input": "moovie/{features,ui,lib}/**",
       "output": "research/reviews/update-movie-review-screen-code-review.md"
     }
   ],
