@@ -290,7 +290,7 @@ At the start of each session, load these resources:
 - `repo-management` — Manage submodules, branches, PRs (configured in `.mcp.json`)
 - `linear` — Linear workspace integration (configured in `.mcp.json`)
 
-**3. Skills** — Custom Claude workflows:
+**3. Skills** — Custom Claude workflows (invoke via `Skill("skill-name")`):
 - `setting-up-linear-mcp` — Configure Linear MCP for workspace-specific project and secure token storage
 - `moovie-research-format` — Standardized format for design docs, architecture decisions, research
 - `verify-docs-before-pr` — Documentation verification before PR creation
@@ -300,13 +300,9 @@ These resources are binding for all work in this repo. Obey rules before suggest
 
 ### Linear MCP (First Time)
 
-If you don't have Linear MCP configured:
-1. Use skill: `setting-up-linear-mcp`
-2. Generate API token: https://linear.app/mobyle/settings/api
-3. Update `.claude/settings.json` + `.claude/settings.local.json`
-4. Restart Claude Code
+Use skill: `Skill("setting-up-linear-mcp")` — guides secure project-level setup with workspace scoping + token storage.
 
-Default project: MOO (Moovie). Token stored securely in `.local.json` (gitignored).
+Default project: MOO (Moovie). Token stored in `.claude/settings.local.json` (gitignored).
 
 ---
 

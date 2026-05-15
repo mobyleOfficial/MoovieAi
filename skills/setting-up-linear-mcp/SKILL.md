@@ -1,21 +1,21 @@
 ---
 name: setting-up-linear-mcp
-description: Use when configuring Linear MCP for Claude Code, need to connect workspace-specific project, or want to store API token securely at project level
+description: Use when configuring Linear MCP for Claude Code, need to connect a workspace, or want to store the API token securely at project level
 ---
 
 # Setting Up Linear MCP
 
-Configure Linear MCP in Claude Code at the project level with workspace + project scoping and secure token storage.
+Configure the Linear MCP server in this project with secure token storage.
 
 ## Overview
 
-Linear MCP enables Claude Code to read/manage Linear issues in your workspace. This skill guides secure project-level configuration with workspace scoping — each project can have its own workspace + token without global installation conflicts.
+Linear MCP lets Claude Code read and manage Linear issues. This skill walks through project-level setup: server registration in `.mcp.json` at repo root, token storage in `.claude/settings.local.json` (gitignored).
 
 ## When to Use
 
 - First-time Linear MCP setup in a project
-- Adding Linear integration to existing Claude Code project
-- Multiple workspaces, need project-specific defaults
+- Adding Linear integration to a clone that does not yet have a token
+- Rotating an exposed token
 
 ## Quick Steps
 
@@ -23,126 +23,90 @@ Linear MCP enables Claude Code to read/manage Linear issues in your workspace. T
 
 Navigate to: `https://linear.app/<workspace-name>/settings/api`
 
-Click **Create new** → Copy token (looks like `lin_api_xxx...`)
+Click **Create new** → copy token (looks like `lin_api_xxx...`).
 
-**2. Update `.claude/settings.json`**
+**2. Verify `.mcp.json` at repo root**
 
-**If file exists:**
-Open `.claude/settings.json` and add `linear` entry to `mcpServers` object + add env vars:
-```json
-{
-  "mcpServers": {
-    "existing-server": { ... },
-    "linear": {
-      "command": "npx",
-      "args": ["@linear/mcp"],
-      "env": {
-        "LINEAR_WORKSPACE_ID": "workspace-slug",
-        "LINEAR_PROJECT_ID": "PROJECT-KEY",
-        "LINEAR_API_TOKEN": "${LINEAR_API_TOKEN}"
-      }
-    }
-  },
-  "env": {
-    "LINEAR_WORKSPACE_ID": "workspace-slug",
-    "LINEAR_PROJECT_ID": "PROJECT-KEY"
-  },
-  "permissions": { ... }
-}
-```
+The repo ships a `.mcp.json` at the root with the Linear server already declared:
 
-**If file doesn't exist:**
-Create `.claude/settings.json`:
 ```json
 {
   "mcpServers": {
     "linear": {
       "command": "npx",
-      "args": ["@linear/mcp"],
+      "args": ["linear-mcp"],
       "env": {
-        "LINEAR_WORKSPACE_ID": "workspace-slug",
-        "LINEAR_PROJECT_ID": "PROJECT-KEY",
-        "LINEAR_API_TOKEN": "${LINEAR_API_TOKEN}"
+        "LINEAR_ACCESS_TOKEN": "${LINEAR_ACCESS_TOKEN}"
       }
     }
-  },
-  "env": {
-    "LINEAR_WORKSPACE_ID": "workspace-slug",
-    "LINEAR_PROJECT_ID": "PROJECT-KEY"
   }
 }
 ```
 
-Replace placeholders:
-- `workspace-slug` — from Linear URL: `linear.app/[workspace-slug]/...`
-- `PROJECT-KEY` — team key (MOO, ENG, PROJ, etc)
-- `${LINEAR_API_TOKEN}` — token reference (don't hardcode actual value)
+No edit needed for a clone. The `${LINEAR_ACCESS_TOKEN}` reference reads from your local environment file (next step).
 
-**3. Update `.claude/settings.local.json`**
+**3. Set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json`**
 
-**If file exists:**
-Add to `env` object (merge with existing vars):
+**If the file exists:** add the token to the `env` block (merge with existing values):
+
 ```json
 {
   "env": {
-    "EXISTING_VAR": "...",
-    "LINEAR_API_TOKEN": "lin_api_xxx..."
+    "LINEAR_ACCESS_TOKEN": "lin_api_xxx..."
   }
 }
 ```
 
-**If file doesn't exist:**
-Create `.claude/settings.local.json`:
+**If the file does not exist:** create it:
+
 ```json
 {
   "env": {
-    "LINEAR_API_TOKEN": "lin_api_xxx..."
+    "LINEAR_ACCESS_TOKEN": "lin_api_xxx..."
   }
 }
 ```
 
-Paste your actual token here. Never commit this file.
+Paste the real token here. Never commit this file.
 
 **4. Verify `.gitignore`**
 
-Ensure `.gitignore` contains:
-```
-.claude/settings.local.json
-```
-
-If missing, add it.
+`.gitignore` must list `.claude/settings.local.json`. If missing, add the line — otherwise the token will reach the remote on next commit.
 
 **5. Restart Claude Code**
 
-Settings reload on session start. Force restart if connecting immediately.
+MCP servers register on session start. Force-restart if connecting immediately.
 
 ## Verify Connection
 
-Ask Claude Code: "List my Linear issues" — should see issues from `LINEAR_PROJECT_ID` project in `LINEAR_WORKSPACE_ID` workspace.
+Ask Claude Code: "List my Linear issues" — Claude should surface issues from your workspace via the Linear MCP server.
+
+## Default Project
+
+This repo defaults to the `MOO` project in the `mobyle` workspace. The `linear-mcp` server has no project filter — `MOO` is convention only, not enforcement. When referencing issues in PRs or commits, use the `MOO-123` prefix; the server will return any issue the token has access to regardless of project.
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
-| Token committed to git | Revoke at https://linear.app/[workspace]/settings/api, regenerate, move to .local.json |
-| Wrong workspace URL format | Use slug from URL path: `linear.app/mobyle/...` → `mobyle` |
-| Forgot ${LINEAR_API_TOKEN} reference | Token env var won't load. Use `"${LINEAR_API_TOKEN}"` in mcpServers, actual value in .local.json |
-| Settings not reloading | Restart Claude Code completely (not just new tab) |
-| Multiple workspaces, can't switch | Each project gets its own .local.json + workspace scoping. No global override needed |
+| Token committed to git | Revoke at `https://linear.app/<workspace>/settings/api`, regenerate, store in `.claude/settings.local.json` only |
+| Wrong package name | The package is `linear-mcp` (dvcrn), not `@linear/mcp`. Latter does not exist on npm |
+| Wrong env var name | `linear-mcp` reads `LINEAR_ACCESS_TOKEN`, not `LINEAR_API_TOKEN`. Older docs may say the wrong name |
+| Forgot `${LINEAR_ACCESS_TOKEN}` reference | Token will not interpolate. Use `"${LINEAR_ACCESS_TOKEN}"` in `.mcp.json`, real value in `.claude/settings.local.json` |
+| Settings not reloading | Restart Claude Code completely (not just a new tab) |
 
 ## Security Notes
 
-- **API tokens are read-write credentials** — treat like passwords
-- Revoke immediately if exposed (leaked in git, screenshot, chat)
-- `.local.json` is gitignored — never committed
-- Different project = different token/workspace possible
-- Team members each create their own token (not shared)
+- **API tokens are read-write credentials** — treat like passwords.
+- Revoke immediately if exposed (committed to git, screenshot, chat transcript).
+- `.claude/settings.local.json` is gitignored — never commit it.
+- Team members each create their own token. Tokens are not shared.
 
 ## Next: Use Linear MCP
 
 Once connected, Claude Code has Linear tools available. Ask about:
-- Listing issues by status/assignee
-- Creating/updating issues
-- Finding specific Linear metadata
+- Listing issues by status / assignee / label
+- Creating or updating issues
+- Looking up metadata for a specific issue
 
-See Linear MCP docs for full tool reference.
+See `linear-mcp` (dvcrn) docs for the full tool reference.

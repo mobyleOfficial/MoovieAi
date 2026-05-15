@@ -52,18 +52,9 @@ Automates repository operations:
 
 ## Linear MCP Integration
 
-This repo supports **Linear MCP** for AI-assisted issue management:
+Connect Linear to Claude Code for issue management in development sessions.
 
-```bash
-# Configure Linear in Claude Code (one-time setup per developer)
-- Generate API token at: https://linear.app/mobyle/settings/api
-- Update .claude/settings.json with workspace/project IDs
-- Store token in .claude/settings.local.json (gitignored)
-```
-
-**Setup Guide:** Use the `setting-up-linear-mcp` skill in Claude Code for step-by-step configuration.
-
-**Default project:** MOO (Moovie) — all Claude sessions default to this project.
+**Setup:** Use skill `Skill("setting-up-linear-mcp")` for one-time configuration. Default project: MOO (Moovie).
 
 ## Frontend (Moovie)
 
