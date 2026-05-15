@@ -133,7 +133,27 @@ Design docs, architecture decisions, API specs, performance analysis, user resea
 Claude Code MCP plugins and servers (e.g., repo-management). Register in `.claude/settings.json` to extend Claude's capabilities. Pre-registered and ready to use.
 
 ### `rules/`
-Linting configurations, formatter rules, ecosystem policies. Reference when style issues arise or when implementing ecosystem-wide standards.
+Linting configurations, formatter rules, and architecture policies organized into three categories:
+
+**Common Rules (Both Frontend & Backend):**
+- `common/AI_AGNOSTIC_SUBMODULES.md` — Child repos must remain AI-agnostic
+- `common/LOCAL_CLAUDE_CONFIG.md` — Config must use portable relative paths
+- `common/NO_COAUTHORS.md` — Never use Co-Authored-By trailers
+- `common/PYTHON_ENVS.md` — All Python in local venv
+- `common/variable-naming.md` — Naming conventions
+
+**Frontend Rules (Flutter/Dart):**
+- `frontend/feature-architecture.md` — Feature module structure
+- `frontend/feature-implementation.md` — Dart code style
+- `frontend/feature-testing.md` — Testing patterns
+- `frontend/ui-architecture.md` — UI module structure
+- `frontend/accessibility.md` — WCAG AA compliance
+- `frontend/localization.md` — Multi-language support
+
+**Backend Rules (Kotlin/Ktor):**
+- `backend/backend-architecture.md` — Clean architecture
+- `backend/backend-implementation.md` — Kotlin code style
+- `backend/backend-testing.md` — Testing patterns
 
 ### `skills/`
 Custom Claude workflows for scaffolding features and standardized documentation. Organized into three categories:
@@ -165,6 +185,33 @@ Custom Claude agents for specialized tasks across the feature development pipeli
 - **validator** — Final pre-merge validation
 
 Register in `.claude/settings.json` or invoke via `/agent-name`. All agents inherit ecosystem conventions and pre-authorized tools.
+
+### `hooks/`
+
+Validation hooks for code quality and architecture compliance. Organized into three categories:
+
+**Common Hooks (Both Frontend & Backend):**
+- `common/block-destructive-commands.sh` — Prevents dangerous shell operations
+- `common/enforce-path-restrictions.sh` — Ensures portable config paths
+- `common/human-gate-review.sh` — Requires human review at critical gates
+- `common/pipeline-coordinator.sh` — Manages feature development pipeline flow
+- `common/validate-spec.sh` — Validates feature specifications
+
+**Frontend Hooks (Flutter/Dart):**
+- `frontend/block-cross-feature-data-imports.sh` — Enforces architecture boundaries
+- `frontend/format-code.sh` — Auto-formats Dart code
+- `frontend/regenerate-generated-files.sh` — Runs build_runner
+- `frontend/validate-implementation.sh` — Validates Dart code patterns
+- `frontend/validate-localization.sh` — Validates multi-language support
+- `frontend/validate-module-structure.sh` — Validates feature structure
+- `frontend/verify-di-registration.sh` — Verifies DI completeness
+
+**Backend Hooks (Kotlin/Ktor):**
+- `backend/verify-koin-di-registration.sh` — Verifies Koin module registration
+- `backend/validate-backend-structure.sh` — Validates clean architecture
+- `backend/validate-kotlin-code.sh` — Validates Kotlin patterns
+
+Run automatically by agents via pre/post-tool-use and stop hooks. See [hooks/README.md](hooks/README.md) for details.
 
 ---
 
@@ -301,11 +348,14 @@ Displays automatically in the bottom right. Helps identify when to compact conve
 
 At the start of each session, load these resources:
 
-**1. Rules** — Organizational policies that govern all work:
-- [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` config must use portable relative paths, no `~/` or absolute user paths
-- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (moovie, backend) must remain AI-agnostic, no CLAUDE.md/.claude/ in submodules
-- [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use Co-Authored-By trailers in commits, single author always
-- [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python dependencies must be in local venv, never global install
+**1. Rules** — Organizational policies and architecture patterns:
+- **Critical policies (all development):**
+  - [`rules/common/LOCAL_CLAUDE_CONFIG.md`](rules/common/LOCAL_CLAUDE_CONFIG.md) — portable relative paths in `.claude/` config
+  - [`rules/common/AI_AGNOSTIC_SUBMODULES.md`](rules/common/AI_AGNOSTIC_SUBMODULES.md) — child repos must remain AI-agnostic
+  - [`rules/common/NO_COAUTHORS.md`](rules/common/NO_COAUTHORS.md) — single author per commit always
+  - [`rules/common/PYTHON_ENVS.md`](rules/common/PYTHON_ENVS.md) — local Python venv required
+- **Frontend-specific:** `rules/frontend/` (architecture, testing, UI, accessibility, localization)
+- **Backend-specific:** `rules/backend/` (architecture, implementation, testing)
 
 **2. Plugins** — MCP servers available in this project:
 - `repo-management` — Manage submodules, branches, PRs (configured in `.mcp.json`)
