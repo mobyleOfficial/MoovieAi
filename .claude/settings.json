@@ -30,14 +30,6 @@
       "Bash(which *)"
     ]
   },
-  "extraKnownMarketplaces": {
-    "local-skills": {
-      "source": {
-        "source": "directory",
-        "path": "./skills"
-      }
-    }
-  },
   "statusLine": {
     "type": "command",
     "command": "./.claude/statusline.sh"

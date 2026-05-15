@@ -17,7 +17,7 @@ cd MoovieAi
 - **[research/](research)** — Design docs, API specs, architecture decisions
 - **[plugins/](plugins)** — Claude Code MCP servers and tools
 - **[rules/](rules)** — Linting, formatting, ecosystem policies
-- **[skills/](skills)** — Standardized workflows and documentation formats
+- **[.claude/skills/](.claude/skills)** — Project-level Claude Code skills (auto-discovered)
 - **[agents/](agents)** — Custom Claude agents for specialized tasks
 
 See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete development guide.
@@ -113,7 +113,7 @@ status: draft|approved|archived
 ## Next Steps
 ```
 
-See [skills/moovie-research-format/](skills/moovie-research-format/SKILL.md) for full specification.
+See [.claude/skills/moovie-research-format/](.claude/skills/moovie-research-format/SKILL.md) for full specification.
 
 ## Submodule Workflows
 

@@ -5,7 +5,7 @@ description: Verify README.md and CLAUDE.md are updated when opening a PR
 
 Check if documentation is in sync with code changes before creating a pull request.
 
-Detects if critical files changed (config, plugins, skills, rules, dependencies) without corresponding README.md or CLAUDE.md updates.
+Detects if critical files changed (`.claude/` config/skills/hooks, `plugins/`, `agents/`, `rules/`, dependencies) without corresponding `README.md` or `CLAUDE.md` updates.
 
 Run this before `/open-pull-request` to catch out-of-sync docs.
 
@@ -17,13 +17,12 @@ Run this before `/open-pull-request` to catch out-of-sync docs.
 
 ## What It Checks
 
-- `.claude/` config changes
+- `.claude/` config + skills + hooks changes
 - `plugins/` modifications
-- `skills/` additions
 - `agents/` changes
 - `rules/` updates
 - `moovie/` or `backend/` structure changes
-- Dependency updates (package.json, gradle, pubspec.yaml, Gemfile)
+- Dependency updates (`package.json`, gradle, `pubspec.yaml`, `Gemfile`, `.env`, docker)
 
 ## Output
 
