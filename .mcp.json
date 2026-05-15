@@ -5,8 +5,8 @@
       "args": ["./plugins/repo-management/dist/index.js"]
     },
     "linear": {
-      "command": "npx",
-      "args": ["linear-mcp"],
+      "command": "node",
+      "args": ["./node_modules/linear-mcp/build/index.js"],
       "env": {
         "LINEAR_ACCESS_TOKEN": "${LINEAR_ACCESS_TOKEN}"
       }
