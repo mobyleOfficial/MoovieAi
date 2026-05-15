@@ -226,6 +226,8 @@ cd backend
 
 **No Coauthors:** Never use `Co-Authored-By` trailers in commits, PR descriptions, or issues in any child repository. Single author per commit always. See [rules/NO_COAUTHORS.md](rules/NO_COAUTHORS.md).
 
+**Python Environments:** All Python dependencies MUST be installed in a local, project-specific Python environment. Never install globally. See [rules/PYTHON_ENVS.md](rules/PYTHON_ENVS.md).
+
 ## Conventions
 
 ### Commit Messages
