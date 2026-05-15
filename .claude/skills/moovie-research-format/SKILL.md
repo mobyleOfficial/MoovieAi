@@ -134,7 +134,7 @@ Examples:
 
 ### Pipeline-generated documents
 
-When a document is produced by the feature-development pipeline (pm-spec → architect-review → implementer-tester → code-review), it lives in a topic-specific subdirectory under `research/`:
+When a document is produced by the feature-development pipeline (pm-spec → architect-review → implementer-tester → code-review), it lives in a category-specific subdirectory under `research/`:
 
 | Subdirectory | Produced by | Purpose |
 |--------------|-------------|---------|
@@ -144,9 +144,9 @@ When a document is produced by the feature-development pipeline (pm-spec → arc
 | `research/reviews/<feature>-code-review.md` | `code-review` agent | Post-implementation code review |
 | `research/archive/<feature>.md` | manual | Completed / shelved features |
 
-Filename inside the subdirectory is `<feature-slug>.md` (no date prefix — pipeline stages map to a single feature, so directory + slug already disambiguate). The metadata YAML block at the top still carries the `date` field.
+Filename inside the subdirectory is based on the feature slug (e.g. `<feature>.md` for specs, `<feature>-code-review.md` for code reviews — no date prefix; pipeline stages map to a single feature, so directory + slug already disambiguate). The metadata YAML block at the top still carries the `date` field.
 
-Use the flat `YYYY-MM-DD-topic.md` layout for any research that is not a pipeline output.
+Use the flat `research/YYYY-MM-DD-topic.md` layout for any research that is not a pipeline output.
 
 ## Code Examples
 

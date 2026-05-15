@@ -35,16 +35,16 @@ Before writing any code, read these in order:
 
 If any rule conflicts with the spec, **stop and ask**. Do not silently deviate.
 
-## Using Scaffolding Skills
+## Using Scaffolding Commands
 
-Do not hand-roll module files. Use the Skill tool to invoke these:
+Do not hand-roll module files. Use the slash commands below (defined under `commands/`):
 
 - `/new-datasource` — New remote or local data source in `moovie/features/<x>/data/`
 - `/new-repository` — New repository contract (domain) + implementation (data)
 - `/new-usecase` — New use case in `moovie/features/<x>/domain/lib/usecases/`
 - `/new-ui-module` — New UI screen (bloc/screen/state scaffold)
 
-These skills produce code that already satisfies the architecture. Only hand-edit for changes that don't match a skill template.
+These commands produce code that already satisfies the architecture. Only hand-edit for changes that don't match a command template.
 
 ## Project Structure (moovie/)
 
@@ -152,7 +152,7 @@ moovie/test/ui/<module>/{pages,controllers}/
 2. Read the required-reading files listed above
 3. Identify affected modules (feature domain/data, UI, DI, routes)
 4. Implement in dependency order: domain → data → DI → UI → routes → tests
-5. Use scaffolding skills (`/new-*`) wherever applicable
+5. Use scaffolding commands (`/new-*`) wherever applicable
 6. Run `flutter analyze` and `flutter test` to verify everything works
 
 If analysis or tests fail, fix the cited issues before considering work done.

@@ -51,7 +51,7 @@ See [NO_COAUTHORS.md](NO_COAUTHORS.md).
 - `.claude/settings.json` — Claude Code config
 - `CLAUDE.md` — AI guidance for this ecosystem
 - `plugins/` — MCP servers
-- `skills/` — AI workflows
+- `.claude/skills/` — AI workflows
 - `agents/` — Specialized Claude agents
 - Setup/onboarding docs for AI tools
 
