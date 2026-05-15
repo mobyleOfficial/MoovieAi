@@ -23,7 +23,7 @@ MoovieAi/
 ├── research/         # Research docs, analysis, design docs
 ├── plugins/          # Claude Code MCP plugins and servers
 ├── rules/            # Linting, formatting, ecosystem policies
-├── skills/           # Custom Claude workflows (standardized documentation)
+├── .claude/skills/   # Project-level Claude Code skills (auto-discovered)
 ├── agents/           # Custom Claude agents for specialized tasks
 └── CLAUDE.md         # This file
 ```
@@ -135,12 +135,13 @@ Claude Code MCP plugins and servers (e.g., repo-management). Register in `.claud
 ### `rules/`
 Linting configurations, formatter rules, ecosystem policies. Reference when style issues arise or when implementing ecosystem-wide standards.
 
-### `skills/`
-Custom Claude workflows (superpowers skills, standardized documentation formats). Use when implementing repetitive patterns or cross-repo concerns.
+### `.claude/skills/`
+Project-level Claude Code skills, auto-discovered each session. Use when implementing repetitive patterns or cross-repo concerns.
 
 **Available Skills:**
 - `moovie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
-- `setting-up-linear-mcp` — Configure Linear MCP at project level with workspace scoping and secure token storage
+- `setting-up-linear-mcp` — Configure Linear MCP and securely store token
+- `verify-docs-before-pr` — Documentation verification before opening a PR
 
 ### `agents/`
 Custom Claude agents for specialized tasks (frontend, backend, CI/CD, architecture review). Register in `.claude/settings.json` or invoke via `/agent-name`. Inherit ecosystem conventions and pre-authorized tools.
@@ -290,11 +291,12 @@ At the start of each session, load these resources:
 - `repo-management` — Manage submodules, branches, PRs (configured in `.mcp.json`)
 - `linear` — Linear workspace integration (configured in `.mcp.json`)
 
-**3. Skills** — Custom Claude workflows (invoke via `Skill("skill-name")`):
-- `setting-up-linear-mcp` — Configure Linear MCP for workspace-specific project and secure token storage
+**3. Skills** — Project-level Claude Code skills in `.claude/skills/` (invoke via `Skill("skill-name")`):
+- `setting-up-linear-mcp` — Configure Linear MCP and securely store token
 - `moovie-research-format` — Standardized format for design docs, architecture decisions, research
 - `verify-docs-before-pr` — Documentation verification before PR creation
-- Additional skills auto-discoverable via `local-skills` marketplace in `.claude/settings.json`
+
+Scaffolding workflows (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`) live under `commands/` and are invoked as slash commands, not skills.
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
@@ -311,7 +313,7 @@ Default project: MOO (Moovie). Token stored in `.claude/settings.local.json` (gi
 When working in child repos (moovie or backend):
 - Refer back to this CLAUDE.md for ecosystem context
 - Check `research/` for design decisions that affect your changes
-- Use plugins/ and skills/ resources for repeated tasks
+- Use `plugins/` and `.claude/skills/` resources for repeated tasks
 - Update submodule references in the meta-repo after merging changes
 - **Follow NO_COAUTHORS rule strictly** — single author on all commits
 - If adding new shared resources, document them here

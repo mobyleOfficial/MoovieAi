@@ -22,9 +22,8 @@ fi
 
 # Patterns that should trigger doc updates
 CRITICAL_CHANGES=(
-  "^\.claude/"                          # Claude config changes
+  "^\.claude/"                          # Claude config + skills + hooks
   "^plugins/"                           # Plugin changes
-  "^skills/"                            # Skills changes
   "^agents/"                            # Agents changes
   "^rules/"                             # Rules changes
   "^moovie/" "^backend/"                # Submodule structure changes
@@ -47,7 +46,7 @@ if [ "$HAS_CRITICAL_CHANGE" -eq 1 ] && [ "$DOCS_MODIFIED" -eq 0 ]; then
   echo "⚠️  Documentation out of sync"
   echo ""
   echo "Critical files changed:"
-  echo "$CHANGED_FILES" | grep -E "^\.claude/|^plugins/|^skills/|^agents/|^rules/|package\.json|gradle|pubspec\.yaml" | sed 's/^/  - /'
+  echo "$CHANGED_FILES" | grep -E "^\.claude/|^plugins/|^agents/|^rules/|package\.json|gradle|pubspec\.yaml" | sed 's/^/  - /'
   echo ""
   echo "README.md and/or CLAUDE.md should be updated."
   echo "Update docs before opening PR to keep team in sync."
