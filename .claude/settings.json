@@ -52,6 +52,16 @@
   "statusLine": {
     "type": "command",
     "command": "./.claude/statusline.sh"
+  },
+  "hooks": {
+    "UserPromptSubmit": [{
+      "matcher": ".*",
+      "hooks": [{
+        "type": "command",
+        "command": "./.claude/validate-config.sh",
+        "statusMessage": "Validating Claude config portability..."
+      }]
+    }]
   }
 }
 
