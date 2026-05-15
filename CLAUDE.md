@@ -253,6 +253,7 @@ Example: `fix: correct auth token expiry logic`
 - Release PRs target `main`
 - Use Conventional Commits format in PR title
 - No coauthors in PR descriptions
+- **Before opening PR:** Run `verify-docs-before-pr` skill to ensure README.md/CLAUDE.md are updated if code changes affect docs
 
 ### Submodule Operations
 Handled by `repo-management` MCP server:
