@@ -48,6 +48,10 @@
       "Bash(pwd)",
       "Bash(which *)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "./.claude/statusline.sh"
   }
 }
 
