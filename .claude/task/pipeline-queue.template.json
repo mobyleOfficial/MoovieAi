@@ -24,8 +24,8 @@
       "output": null
     },
     {
-      "name": "code-review",
-      "agent": "code-review",
+      "name": "validate",
+      "agent": "validator",
       "status": "pending",
       "input": null,
       "output": null
