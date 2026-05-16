@@ -3,12 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "patch-package"
+    "postinstall": "patch-package --error-on-fail"
   },
   "dependencies": {
-    "linear-mcp": "^1.2.0"
-  },
-  "devDependencies": {
+    "linear-mcp": "1.2.0",
     "patch-package": "^8.0.1"
   }
 }
