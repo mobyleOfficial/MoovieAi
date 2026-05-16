@@ -39,32 +39,38 @@ Execute these steps in order. Do not skip.
 
 If existing inline review comments exist on the PR:
 
-- List them: `gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments`
-- For each comment thread, read the file at the new HEAD commit (`gh pr view <N> --json headRefOid`).
+- List **root** comments only (skip replies — otherwise each reply re-triggers the resolution dance for its parent thread). Add `--paginate` so PRs with many discussions aren't truncated:
+  ```bash
+  gh api --paginate repos/mobyleOfficial/MoovieAi/pulls/<N>/comments \
+    --jq '.[] | select(.in_reply_to_id == null) | {id, node_id, path, line, body, user: .user.login}'
+  ```
+- For each root comment, read the file at the new HEAD commit (`gh pr view <N> --json headRefOid`).
 - If the issue described in the comment is no longer present:
   1. Post a reply on the thread:
-     ```
+     ```bash
      gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments/<comment_id>/replies -X POST -f body="Resolved in <SHA>."
      ```
   2. Mark the review thread as RESOLVED via GraphQL (collapses the thread in the GitHub UI; humans don't have to click "Resolve" per thread).
 
-     First fetch the `threadId` for the comment (REST `comment_id` and GraphQL `thread_id` are different — GraphQL is the only API that resolves threads):
+     Use the comment's `node_id` (returned by the REST list above) to fetch its parent thread directly — avoids the `first: 100` truncation risk and the brittle `select(.databaseId == X)` scan. Also fetch `isResolved` so already-resolved threads are skipped:
      ```bash
-     THREAD_ID=$(gh api graphql -f query='
-       query($owner:String!,$repo:String!,$pr:Int!){
-         repository(owner:$owner,name:$repo){
-           pullRequest(number:$pr){
-             reviewThreads(first:100){ nodes { id comments(first:1){ nodes { databaseId }}}}
+     THREAD_DATA=$(gh api graphql -f query='
+       query($id:ID!){
+         node(id:$id){
+           ... on PullRequestReviewComment {
+             pullRequestReviewThread { id isResolved }
            }
          }
-       }' -f owner=mobyleOfficial -f repo=MoovieAi -F pr=<N> \
-       --jq ".data.repository.pullRequest.reviewThreads.nodes[] |
-              select(.comments.nodes[0].databaseId == <comment_id>) | .id")
-     ```
+       }' -f id="<node_id>" --jq '.data.node.pullRequestReviewThread')
 
-     Then resolve:
-     ```bash
-     gh api graphql -f query='mutation($t:ID!){ resolveReviewThread(input:{threadId:$t}){ thread{ isResolved }}}' -f t="$THREAD_ID"
+     THREAD_ID=$(echo "$THREAD_DATA" | jq -r .id)
+     IS_RESOLVED=$(echo "$THREAD_DATA" | jq -r .isResolved)
+
+     if [ "$IS_RESOLVED" = "false" ]; then
+       gh api graphql -f query='mutation($t:ID!){
+         resolveReviewThread(input:{threadId:$t}){ thread{ isResolved }}
+       }' -f t="$THREAD_ID"
+     fi
      ```
 - If the issue is still present, do not reply — let it ride into the new review pass.
 
