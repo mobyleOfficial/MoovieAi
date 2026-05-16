@@ -65,7 +65,7 @@ Automates repository operations:
 
 Connect Linear to Claude Code for issue management in development sessions.
 
-**Setup:** Use skill `Skill("setting-up-linear-mcp")` for one-time configuration. Default project: MOO (Moovie).
+**Setup:** Run `/setting-up-linear-mcp` for one-time configuration. Default project: MOO (Moovie).
 
 ### Pipeline Agents
 

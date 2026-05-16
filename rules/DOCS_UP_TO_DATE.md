@@ -24,7 +24,7 @@ If a change matches, the same PR MUST update at least one of: `README.md`, `CLAU
 
 ## Enforcement
 
-- **Manual:** invoke `Skill("verify-docs-before-pr")` before opening a PR.
+- **Manual:** run `/verify-docs-before-pr` before opening a PR.
 - **Automatic:** `.claude/hooks/check-docs-sync.sh` runs as `PreToolUse` on Bash. It intercepts `gh pr create` and `git push` invocations, runs `verify-docs.sh`, and blocks the operation if critical files changed without corresponding doc updates.
 
 ## Exceptions
@@ -41,7 +41,7 @@ Document the exception in the PR body so a reviewer can confirm.
 |---------|-----|
 | "I'll update docs after the PR merges" | No. Same PR. Doc update is part of the change, not a follow-up. |
 | Updating only `CLAUDE.md` when a subdir `README.md` is also affected | Update every doc that describes the changed surface. |
-| Hidden coupling: doc references a path you just deleted | Run `verify-docs-before-pr` — it greps the change set for critical paths. |
+| Hidden coupling: doc references a path you just deleted | Run `/verify-docs-before-pr` — it greps the change set for critical paths. |
 | Treating `.claude/CLAUDE.md` and root `CLAUDE.md` as interchangeable | They are scoped differently. See `.claude/CLAUDE.md` for behavioral scope, root `CLAUDE.md` for project scope. |
 
 ---
