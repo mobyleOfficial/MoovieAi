@@ -21,7 +21,7 @@ All three ship in the repo. Only the token in step 3 needs to be set by a clone.
 
 Run `./bootstrap.sh` once after cloning. It installs `linear-mcp` via `npm`, validates that `jq` is available, and `chmod +x`'s the wrapper at `.claude/bin/linear-mcp.sh`. Manual installs work too but every step below assumes those three prerequisites are met.
 
-> **Upstream patch note.** `linear-mcp@1.2.0` passes the PAT to `@linear/sdk` via the `accessToken` field, which always adds an `Authorization: Bearer …` prefix. Linear's API rejects PATs with a Bearer prefix (error: `It looks like you're trying to use an API key as a Bearer token`). We patch `node_modules/linear-mcp/build/auth.js` to use the SDK's `apiKey` field instead, via `patches/linear-mcp+1.2.0.patch`. The patch is re-applied automatically on every `npm install` by the root `postinstall` script (`patch-package`). No manual steps required. See [MOO-11](https://linear.app/mobyle/issue/MOO-11) for upstream-fix progress.
+> **Upstream patch note.** `linear-mcp@1.2.0` passes the PAT to `@linear/sdk` via the `accessToken` field, which always adds an `Authorization: Bearer …` prefix. Linear's API rejects PATs with a Bearer prefix (error: `It looks like you're trying to use an API key as a Bearer token`). We patch `node_modules/linear-mcp/build/auth.js` to use the SDK's `apiKey` field instead, via `patches/linear-mcp+1.2.0.patch`. The patch is re-applied automatically on every `npm install` by the root `postinstall` script (`patch-package`). No manual steps required. Upstream PR pending against `dvcrn/linear-mcp`; remove the patch once merged.
 
 ## When to Use
 
@@ -115,7 +115,7 @@ This repo defaults to the `MOO` project in the `mobyle` workspace. The `linear-m
 | Token missing from settings | Wrapper exits with `linear-mcp: .env.LINEAR_ACCESS_TOKEN missing from .claude/settings.local.json`. Add it under the `env` block |
 | Edited token but MCP still returns "Authentication required" | The MCP server process started before the token was set — restart Claude Code completely (not just a new tab) so the wrapper re-reads `settings.local.json` |
 | `.mcp.json` reverted to inline `${LINEAR_ACCESS_TOKEN}` | The literal string is passed through to the child unexpanded → silent auth failure. Restore `"command": "./.claude/bin/linear-mcp.sh"` and drop the `env` block |
-| `It looks like you're trying to use an API key as a Bearer token` | `patches/linear-mcp+1.2.0.patch` was not applied. Run `npm run postinstall` (or `npx patch-package`) to re-apply, then restart Claude Code. See [MOO-11](https://linear.app/mobyle/issue/MOO-11) |
+| `It looks like you're trying to use an API key as a Bearer token` | `patches/linear-mcp+1.2.0.patch` was not applied. Run `npm run postinstall` (or `npx patch-package`) to re-apply, then restart Claude Code |
 
 ## Security Notes
 
