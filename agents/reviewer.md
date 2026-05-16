@@ -302,7 +302,6 @@ Print a STRICT JSON summary back to the caller:
 - If no issues are found, return an empty `comments` array
 - Do NOT modify code, create commits, or merge the PR
 - Do NOT push branches
-- Do NOT reply to bot comments (e.g. `gemini-code-assist[bot]`) with resolution status — the user or another reviewer handles those
 - Do NOT dispatch the `validator` subagent (or any other pipeline agent) from inside `reviewer`. The `validator → reviewer` direction is the only sanctioned dispatch — dispatching back creates a cycle and undermines the read-only separation. If you find yourself wanting validator's checklist coverage, call the three sub-reviewers directly (already part of Step 3); they are the shared analysis layer.
 
 ## Re-review Pass Heuristics
