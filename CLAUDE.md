@@ -330,7 +330,7 @@ These resources are binding for all work in this repo. Obey rules before suggest
 
 ### Linear MCP (First Time)
 
-Use skill: `Skill("setting-up-linear-mcp")` — guides secure project-level setup with workspace scoping + token storage.
+Run `/setting-up-linear-mcp` — guides secure project-level setup with workspace scoping + token storage.
 
 Default project: MOO (Moovie). Token stored in `.claude/settings.local.json` (gitignored).
 
