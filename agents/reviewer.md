@@ -160,7 +160,9 @@ For EACH surviving finding:
 - If exact line is unclear, pick the most relevant nearby changed line
 - NEVER leave location empty
 
-### Step 9 — Post inline PR comments
+### Step 9 — Post inline PR comments as a single review
+
+Use the **reviews API** (`POST /repos/{owner}/{repo}/pulls/{N}/reviews`), not the one-at-a-time comments endpoint. The reviews API batches every finding under a single review header in GitHub's UI — same visual grouping that the gemini-code-assist bot uses. The one-at-a-time comments endpoint creates loose floating comments that clutter the conversation.
 
 Get the head SHA:
 
@@ -168,21 +170,74 @@ Get the head SHA:
 SHA=$(gh pr view <N> --json headRefOid --jq .headRefOid)
 ```
 
-For each finding, post:
+#### Pass number
+
+Increment by counting prior reviews this agent has produced on the PR — every reviewer-agent review is posted by the GitHub user that owns the token (the maintainer in this repo), with body starting `## Code Review (pass `:
 
 ```bash
-gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments -X POST \
-  -f path="<path>" \
-  -F line=<line> \
-  -f side="RIGHT" \
-  -f commit_id="$SHA" \
-  -f body="$BODY"
+PASS=$(( $(gh api --paginate repos/mobyleOfficial/MoovieAi/pulls/<N>/reviews \
+  --jq '[.[] | select(.body | startswith("## Code Review (pass "))] | length') + 1 ))
 ```
 
-Comment body format:
+#### Empty-findings case
 
+If after Steps 4–8 the surviving finding count is **zero**, **do not POST a review at all**. Posting an empty `comments: []` review with `event: COMMENT` creates a noisy "PR was reviewed and looks fine" entry in the PR's review history. Skip the call and report `posted_comments: 0` in the Step 10 JSON.
+
+#### Build the payload with `jq`, not heredoc
+
+A heredoc-built JSON string corrupts on any `"`, newline, `$`, or backtick inside a comment body — common in code-suggestion fixes. Use `jq` so every value is properly escaped:
+
+```bash
+findings_json=$(jq -n \
+  --arg path1 "<path>" --argjson line1 <line> --arg body1 "<finding body — see format below>" \
+  '[
+     { path: $path1, line: $line1, side: "RIGHT", body: $body1 }
+     # ...repeat per finding...
+   ]')
+
+jq -n \
+  --arg sha "$SHA" \
+  --arg top "<top-level summary body — see format below>" \
+  --argjson comments "$findings_json" \
+  '{ commit_id: $sha, event: "COMMENT", body: $top, comments: $comments }' \
+| gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/reviews -X POST --input -
 ```
-**<risk> — <category>** — <title>
+
+Notes:
+
+- `--arg` always treats values as strings (no shell expansion of `$`, backticks, or `"`); `--argjson` is for numbers / pre-built JSON.
+- Pipe via `--input -` (stdin); no tempfile, no cleanup, no TOCTOU surface.
+- A Python alternative — `python3 -c 'import json,sys; sys.stdout.write(json.dumps({...}))' | gh api ... --input -` — is acceptable when jq isn't available, but jq is already required by other hooks so this is the canonical path.
+
+Use `event: "COMMENT"` — never `REQUEST_CHANGES` or `APPROVE` (the reviewer agent is advisory, not gating).
+
+#### Severity badges (visual parity with gemini-code-assist)
+
+Every comment body MUST lead with the appropriate severity badge image. These render inline in GitHub's PR-review UI:
+
+| Risk | Markdown |
+|------|----------|
+| Critical | `**CRITICAL** ![critical](https://www.gstatic.com/codereviewagent/high-priority.svg)` — gstatic exposes no dedicated critical SVG, so reuse high-priority AND prefix textual `**CRITICAL**` so the highest tier is visually distinguishable. |
+| High | `![high](https://www.gstatic.com/codereviewagent/high-priority.svg)` |
+| Medium | `![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)` |
+| Low | `![low](https://www.gstatic.com/codereviewagent/low-priority.svg)` |
+
+> **Asset stability caveat.** `https://www.gstatic.com/codereviewagent/...` is an undocumented Google CDN endpoint shared with the gemini-code-assist bot. Google can rotate or remove it at any time — every prior review's badge would then render broken. We accept this tradeoff for visual parity. If the assets ever break, mirror the SVGs into `.claude/assets/` and reference via `https://raw.githubusercontent.com/mobyleOfficial/MoovieAi/main/.claude/assets/<name>.svg` (or a stable CDN). Single point of change: this table.
+
+For security findings, prefer the security-specific badge (gemini does this too):
+
+| Security risk | Markdown |
+|---|---|
+| Security High / Critical | `![security-high](https://www.gstatic.com/codereviewagent/security-high-priority.svg)` |
+| Security Medium | `![security-medium](https://www.gstatic.com/codereviewagent/security-medium-priority.svg)` |
+| Security Low | `![security-low](https://www.gstatic.com/codereviewagent/security-low-priority.svg)` |
+
+Stack badges when both a security and a severity tag apply, e.g.: `![security-high](...) ![high](...)`.
+
+#### Comment body format
+
+```markdown
+<severity-badge(s)>
 
 <one-paragraph explanation: what it is, why it matters>
 
@@ -191,6 +246,20 @@ Comment body format:
 <optional details: reproduction / exploitation / impact>
 
 _Confidence: <0.x>_
+```
+
+Drop the prior `**<risk> — <category>** — <title>` header line — the badge already encodes severity, and the title duplicates the first sentence of the explanation. Keep the body tight; one paragraph plus a fix is plenty.
+
+#### Top-level review `body` format
+
+```markdown
+## Code Review (pass <N>)
+
+<one-paragraph summary: scope of this pass, what was reviewed, headline outcome>
+
+**Findings:** <count> total — <breakdown by severity, e.g. "1 high · 2 medium · 1 low">
+**Overall risk:** <Low | Medium | High | Critical>
+**Confidence cutoff:** ≥ 0.6
 ```
 
 ### Step 10 — Final summary
