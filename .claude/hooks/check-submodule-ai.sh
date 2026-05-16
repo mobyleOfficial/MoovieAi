@@ -35,11 +35,22 @@ cd "$repo_root" 2>/dev/null || exit 0
 # Sources of involvement:
 #   1. Currently staged files (any path under moovie/ or backend/)
 #   2. Currently unstaged-but-modified files (will be picked up by git add -A)
-#   3. The current branch points at a submodule-only commit (rare; conservative)
+#   3. Already-committed-but-unpushed files reachable from HEAD but not from
+#      the upstream tracking branch. Without this, `git push` of a clean
+#      working tree whose commits include a submodule pointer bump would
+#      bypass the check entirely.
 involved=""
 staged=$(git diff --cached --name-only 2>/dev/null || true)
 unstaged=$(git diff --name-only 2>/dev/null || true)
-combined=$(printf '%s\n%s\n' "$staged" "$unstaged")
+
+# Unpushed commits — only meaningful when an upstream is set. `@{u}` resolves
+# to the tracking branch; failure (no upstream / detached) is silently empty.
+unpushed=""
+if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+  unpushed=$(git diff --name-only '@{u}'..HEAD 2>/dev/null || true)
+fi
+
+combined=$(printf '%s\n%s\n%s\n' "$staged" "$unstaged" "$unpushed")
 
 for submodule in moovie backend; do
   if echo "$combined" | grep -qE "^${submodule}(/|$)"; then
