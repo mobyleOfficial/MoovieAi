@@ -151,16 +151,33 @@ After writing the validation report (above), check whether the current branch ha
 ### Detection
 
 ```bash
-branch=$(git rev-parse --abbrev-ref HEAD)
-pr_number=$(gh pr list --head "$branch" --json number --jq '.[0].number')
+# Refuse on detached HEAD — symbolic-ref returns non-zero when HEAD is not a branch
+if ! branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
+  # Detached HEAD: cannot map a branch to a PR. Skip PR mode.
+  exit 0
+fi
+
+# List ALL open PRs whose head ref matches this branch. Don't silently first-pick.
+pr_count=$(gh pr list --head "$branch" --state open --json number --jq 'length')
+
+case "$pr_count" in
+  0) ;;                                    # No PR: skip PR mode entirely
+  1) pr_number=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number') ;;
+  *) echo "WARN: $pr_count open PRs share head '$branch'. Skipping inline PR comments to avoid ambiguity." >&2
+     pr_number="" ;;
+esac
 ```
 
-- If `pr_number` is empty: skip PR mode entirely. The local report is the only output.
-- If `pr_number` is set: proceed.
+- If `pr_number` is empty: skip PR mode entirely. The local report remains the only output.
+- If `pr_number` is set: proceed to Dispatch.
 
-### Dispatch
+### Dispatch (allowed subagent: `reviewer` only)
 
-Invoke the `reviewer` agent via the `Task` tool. It already implements the full pipeline (parallel sub-reviewers, validation, deduplication, risk-ranking, inline posting, re-review-resolution semantics) and is the single source of truth for inline-comment posting.
+The `reviewer` agent already implements the full pipeline (parallel sub-reviewers, validation, deduplication, risk-ranking, inline posting, re-review-resolution semantics) and is the **single source of truth** for inline-comment posting.
+
+**Invariant:** `validator` MUST only dispatch the `reviewer` subagent in PR mode. The `Task` tool is present solely for this delegation. Do not call `Task` with any other `subagent_type` from `validator`. Violating this rule reintroduces the duplication this design avoids and bypasses the read-only stance of `validator`.
+
+**Mirror invariant on the other side:** `reviewer` MUST NOT dispatch back to `validator`. This avoids a dispatch cycle. See `agents/reviewer.md`.
 
 ```
 Task({
@@ -174,12 +191,17 @@ Task({
 
 - `reviewer` already owns the `gh api ... /comments` posting logic, including resolution-reply behavior for previously-flagged threads.
 - Centralizes inline-posting in one place: bug fixes and posting-format changes only need to land in `reviewer.md`.
-- Keeps `validator` focused on the read-only local-report responsibility.
+- Keeps `validator` focused on the read-only local-report responsibility on the working tree.
 - Avoids duplicating the parallel-sub-reviewer / validation / deduplication pipeline in two places.
 
 ### What the user sees
 
-- The validation report at `research/reviews/<feature>-code-review.md` — comprehensive offline reference.
-- Inline comments on the PR — actionable, line-anchored, automatically tracked by GitHub's review-thread UI.
+- The validation report at `research/reviews/<feature>-code-review.md` — comprehensive offline reference covering the full 10-section checklist.
+- Inline comments on the PR — actionable, line-anchored, filtered to ≥0.6 confidence per the reviewer workflow, automatically tracked by GitHub's review-thread UI.
 
-Both stay in sync because the local report and the inline comments derive from the same sub-reviewer outputs (the `reviewer` agent runs them) — though the report covers the full 10-section checklist while inline comments are filtered to the higher-confidence subset (≥0.6) per the reviewer workflow.
+Note: these are two **independent** review passes that share the same sub-reviewer prompts but run separately. They will not be byte-identical:
+
+- The local report runs against the entire working-tree change set (full 10 sections, all severities).
+- The inline comments run against the PR diff in the `reviewer` agent's own pipeline (validation + ≥0.6 confidence cutoff + diff-line mapping + dedup against existing inline comments).
+
+If divergence between the two outputs surfaces a real disagreement (a finding present in one but not the other), trust the inline comments — they are post-validation. The local report is the deeper but lower-precision artifact.
