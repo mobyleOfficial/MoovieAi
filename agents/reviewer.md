@@ -52,16 +52,21 @@ If existing inline review comments exist on the PR:
      ```
   2. Mark the review thread as RESOLVED via GraphQL (collapses the thread in the GitHub UI; humans don't have to click "Resolve" per thread).
 
-     Use the comment's `node_id` (returned by the REST list above) to fetch its parent thread directly — avoids the `first: 100` truncation risk and the brittle `select(.databaseId == X)` scan. Also fetch `isResolved` so already-resolved threads are skipped:
+     GitHub's current GraphQL schema exposes no direct `thread` field on `PullRequestReviewComment`, so traverse via `pullRequest.reviewThreads` and filter by `databaseId`. Query `isResolved` too so already-resolved threads skip the mutation:
      ```bash
      THREAD_DATA=$(gh api graphql -f query='
-       query($id:ID!){
-         node(id:$id){
-           ... on PullRequestReviewComment {
-             pullRequestReviewThread { id isResolved }
+       query($owner:String!,$repo:String!,$pr:Int!){
+         repository(owner:$owner,name:$repo){
+           pullRequest(number:$pr){
+             reviewThreads(first:100){
+               nodes { id isResolved comments(first:1){ nodes { databaseId }}}
+             }
            }
          }
-       }' -f id="<node_id>" --jq '.data.node.pullRequestReviewThread')
+       }' -f owner=mobyleOfficial -f repo=MoovieAi -F pr=<N> \
+       --jq ".data.repository.pullRequest.reviewThreads.nodes[] |
+              select(.comments.nodes[0].databaseId == <comment_id>) |
+              {id, isResolved}")
 
      THREAD_ID=$(echo "$THREAD_DATA" | jq -r .id)
      IS_RESOLVED=$(echo "$THREAD_DATA" | jq -r .isResolved)
@@ -72,6 +77,8 @@ If existing inline review comments exist on the PR:
        }' -f t="$THREAD_ID"
      fi
      ```
+
+     The `first: 100` cap is acceptable in practice — typical PRs have well under 100 threads. If a PR exceeds it, paginate with `after` cursors.
 - If the issue is still present, do not reply — let it ride into the new review pass.
 
 After your own review pass posts new comments and the next round of fixes lands, repeat this Step 2 to reply + resolve those threads too. The invariant: a thread is resolved iff the underlying issue is no longer at HEAD.
