@@ -44,8 +44,9 @@ fi
 VIOLATIONS=0
 DOCS_MODIFIED=0
 
-# Check if docs were modified
-if echo "$CHANGED_FILES" | grep -qE "^(README\.md|CLAUDE\.md)$"; then
+# Check if docs were modified anywhere — root or subdir README/CLAUDE.md
+# (per rules/DOCS_UP_TO_DATE.md, a relevant subdirectory README also satisfies)
+if echo "$CHANGED_FILES" | grep -qE "(^|/)(README|CLAUDE)\.md$"; then
   DOCS_MODIFIED=1
 fi
 
