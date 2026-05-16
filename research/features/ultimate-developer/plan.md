@@ -1442,8 +1442,8 @@ The loop's pseudocode names map to these concrete operations. The implementer mu
 | `dedupe(findings, prior_comments)` | For each finding, compute `hash = sha1(path + ":" + line + ":" + first-80-chars-of-body)`. For each `prior_comments[]`, compute the same hash. Drop findings whose hash matches an unresolved prior comment. |
 | `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. |
 | `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. |
-| `apply_fix(thread)` | Use `Read` to inspect cited file (`thread.location` = `path:line`). Use `Edit` (or `Write` for new files) per the thread's `Fix:` suggestion. If suggestion is unclear → fall back to `judge_finding(...) == "defer"`. |
-| `commit_and_push(message)` | Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
+| `apply_fix(thread)` | (1) Use `Read` to inspect cited file (`thread.location` = `path:line`). (2) Use `Edit` (or `Write` for new files) per the thread's `Fix:` suggestion. If suggestion is unclear → fall back to `judge_finding(...) == "defer"`. (3) **Run the phase's verification command** before returning — must pass before `commit_and_push` is called. Verification per phase: spec/plan phases run `.claude/hooks/validate-audit-only.sh` against any modified audit-only-aware agents + a markdown link checker on any links touched; impl phase in moovie runs `flutter analyze` then `flutter test` from inside `moovie/`; impl phase in backend runs `./gradlew test` from inside `backend/`. If verification fails: revert the edit (`git checkout -- <files>`), increment the per-thread fix-attempt counter, and return `"verification_failed"` (treated like a failed fix attempt — caller retries up to 3 then escalates per `judge_finding` special cases). |
+| `commit_and_push(message)` | Preconditions: `apply_fix` has returned successfully (verification passed). Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
 | `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
 | `reply_thread(pr, comment_id, body)` | `gh api "repos/${REPO}/pulls/$pr/comments/$comment_id/replies" -X POST -f body="$body"` |
 | `resolve_thread(node_id)` | GraphQL `resolveReviewThread` mutation (see GH Thread Authoring); guarded with `isResolved` check to skip already-resolved threads. |
@@ -1671,15 +1671,21 @@ safe_merge() {
   protection=$(gh api "repos/${REPO}/branches/${target}/protection" 2>/dev/null || echo "{}")
   local protected
   protected=$(echo "$protection" | jq -r 'if .url then "true" else "false" end')
+  # Required-approving-review count from branch protection (0 if status-check-only rules).
+  local required_reviews
+  required_reviews=$(echo "$protection" | jq -r '.required_pull_request_reviews.required_approving_review_count // 0')
 
-  # Release branches: ALWAYS require protection; no override.
+  # Count non-bot APPROVED reviews on this PR (bots whose login ends with "[bot]" don't count).
+  local human_approvals
+  human_approvals=$(gh pr view "$pr" --json reviews \
+    --jq '[.reviews[] | select(.state == "APPROVED") | select(.author.login | endswith("[bot]") | not)] | length')
+
+  # Existence-of-protection check (pass-1 finding).
   if [ "$target" = "main" ] || [ "$target" = "master" ]; then
     if [ "$protected" != "true" ]; then
       escalate "$pr" "target '$target' is a release branch without protection rules; refusing autonomous merge"
       return 1
     fi
-  # Other branches (dev, develop, epic/*): allow autonomous merge only if either
-  # (a) the branch is protected, or (b) the operator opted in with UD_ALLOW_UNPROTECTED_MERGE=1.
   elif [ "$protected" != "true" ]; then
     if [ "${UD_ALLOW_UNPROTECTED_MERGE:-0}" != "1" ]; then
       escalate "$pr" "target '$target' is unprotected; set UD_ALLOW_UNPROTECTED_MERGE=1 to authorize autonomous merging here"
@@ -1688,9 +1694,25 @@ safe_merge() {
     echo "WARN: autonomous merge into unprotected '$target' (UD_ALLOW_UNPROTECTED_MERGE=1 set)" >&2
   fi
 
+  # Approval-requirement check (pass-2 finding).
+  # A protected branch with only status-check rules (required_reviews == 0) still lets the agent
+  # self-merge with zero human approval. Require at least one of:
+  #   (a) branch protection mandates ≥ 1 approving review, OR
+  #   (b) at least one non-bot APPROVED review exists on the PR right now, OR
+  #   (c) operator opted in with UD_ALLOW_NO_APPROVAL_MERGE=1 (only for the bump PR — pure ref change).
+  if [ "$required_reviews" -lt 1 ] && [ "$human_approvals" -lt 1 ]; then
+    if [ "${UD_ALLOW_NO_APPROVAL_MERGE:-0}" != "1" ]; then
+      escalate "$pr" "target '$target' has protection but no required-review rule and PR has zero non-bot APPROVED reviews; refusing self-merge. Set UD_ALLOW_NO_APPROVAL_MERGE=1 only for ref-bump PRs."
+      return 1
+    fi
+    echo "WARN: merging '$pr' with zero approvals (UD_ALLOW_NO_APPROVAL_MERGE=1 set)" >&2
+  fi
+
   gh pr merge "$pr" --squash --delete-branch
 }
 ```
+
+Note for the cross-repo flow: the final `chore/<slug>-bump-refs` PR is a pure ref-change with no functional code. It's the one case where setting `UD_ALLOW_NO_APPROVAL_MERGE=1` for the single `safe_merge "$BUMP_PR"` call is defensible (it has already passed the impl PR gate; the bump PR has no semantics beyond updating two commit SHAs). All other merges must satisfy the approval check.
 
 Every `gh pr merge` invocation in this plan goes through `safe_merge` instead. Direct `gh pr merge` is forbidden from ultimate-developer.
 
