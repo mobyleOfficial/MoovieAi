@@ -22,6 +22,8 @@ Project-level hooks defined in `.claude/settings.json`:
 | `PreToolUse` Bash | `.claude/hooks/block-destructive-commands.sh` | Blocks `rm -rf`, `git push --force`, `git reset --hard`, etc. |
 | `PreToolUse` Bash | `.claude/hooks/check-coauthor.sh` | Blocks `git commit` containing `Co-Authored-By` trailers |
 | `PreToolUse` Bash | `.claude/hooks/check-python-env.sh` | Blocks `pip` / `uv pip` / `poetry` / `conda install` outside an active virtualenv |
+| `PreToolUse` Bash | `.claude/hooks/check-submodule-ai.sh` | Blocks `git commit` / `git push` when submodule contains AI-tooling files |
+| `PreToolUse` Bash | `.claude/hooks/check-docs-sync.sh` | Blocks `gh pr create` / `git push` when critical files change without a doc update |
 | `PostToolUse` Edit/Write | `.claude/hooks/format-code.sh` | Runs `dart format` on `.dart` files (no-op on others) |
 
 Per-agent hooks (defined in pipeline-agent frontmatter): `validate-spec.sh`, `validate-implementation.sh`, `validate-localization.sh`, `validate-module-structure.sh`, `verify-di-registration.sh`, `regenerate-generated-files.sh`, `pipeline-coordinator.sh`, `human-gate-review.sh`, `enforce-path-restrictions.sh`, `block-cross-feature-data-imports.sh`. All live in `.claude/hooks/`.

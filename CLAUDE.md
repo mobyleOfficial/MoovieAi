@@ -233,6 +233,8 @@ cd backend
 
 **Local Claude Config:** All `.claude/` configuration MUST use portable, relative paths. No global (`~/`) or absolute user paths. Enables config reuse across team. Validated on every prompt. See [rules/LOCAL_CLAUDE_CONFIG.md](rules/LOCAL_CLAUDE_CONFIG.md).
 
+**Docs Up To Date:** Every change affecting user-facing behavior, public interfaces, configuration, or directory structure MUST update the corresponding documentation (README.md, CLAUDE.md, subdir READMEs) in the same PR. Enforced by `.claude/hooks/check-docs-sync.sh` on `gh pr create` / `git push`. See [rules/DOCS_UP_TO_DATE.md](rules/DOCS_UP_TO_DATE.md).
+
 ## Conventions
 
 ### Commit Messages

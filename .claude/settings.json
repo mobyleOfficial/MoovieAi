@@ -64,6 +64,14 @@
         {
           "type": "command",
           "command": "./.claude/hooks/check-python-env.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-submodule-ai.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-docs-sync.sh"
         }
       ]
     }],

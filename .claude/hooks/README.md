@@ -12,6 +12,8 @@ Wired into `.claude/settings.json` under the `hooks` block. Fire on every sessio
 | `block-destructive-commands.sh` | `PreToolUse` Bash | Blocks `rm -rf`, `git push --force`, `git reset --hard`, etc. |
 | `check-coauthor.sh` | `PreToolUse` Bash | Blocks `git commit` containing `Co-Authored-By` trailers (enforces `rules/NO_COAUTHORS.md`) |
 | `check-python-env.sh` | `PreToolUse` Bash | Blocks `pip` / `uv pip` / `poetry` / `conda install` outside an active virtualenv (enforces `rules/PYTHON_ENVS.md`) |
+| `check-submodule-ai.sh` | `PreToolUse` Bash | Blocks `git commit` / `git push` when `moovie/` or `backend/` contains AI-tooling files (enforces `rules/AI_AGNOSTIC_SUBMODULES.md`) |
+| `check-docs-sync.sh` | `PreToolUse` Bash | Blocks `gh pr create` / `git push` when critical files change without a doc update (enforces `rules/DOCS_UP_TO_DATE.md`) |
 | `format-code.sh` | `PostToolUse` Edit\|Write | Runs `dart format` on `.dart` files (filters by extension internally) |
 
 Plus `.claude/validate-config.sh` (one level up, `UserPromptSubmit` matcher) which enforces `rules/LOCAL_CLAUDE_CONFIG.md`.
