@@ -6,7 +6,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -14,10 +14,54 @@ const ROOT_DIR = process.cwd();
 
 type ToolHandler = (args: Record<string, string>) => Promise<string>;
 
+// Run a command with argv-array form (no shell). Avoids injection from
+// any user-supplied argument that ends up in the command line.
+function run(cmd: string, argv: string[]): string {
+  return execFileSync(cmd, argv, {
+    cwd: ROOT_DIR,
+    encoding: "utf-8",
+    stdio: "pipe",
+  });
+}
+
+// Switch to the project's base development branch (develop, with `dev` as a
+// historical fallback) and pull. Used by both feature- and release-branch
+// creation so changes to the strategy land in one place.
+function checkoutDevBaseAndPull(): void {
+  try {
+    run("git", ["checkout", "develop"]);
+  } catch {
+    run("git", ["checkout", "dev"]);
+  }
+  run("git", ["pull", "--ff-only"]);
+}
+
+// Submodule name allowlist — guards branch-name and path arguments that
+// otherwise could be abused for git option/flag injection.
+const SUBMODULES = new Set(["moovie", "backend"]);
+function assertSubmodule(name: string): void {
+  if (!SUBMODULES.has(name)) {
+    throw new Error(
+      `Invalid submodule '${name}'. Allowed: ${[...SUBMODULES].join(", ")}`
+    );
+  }
+}
+
+// Git ref format: refuse names containing whitespace, control chars, or
+// characters reserved by git (`~`, `^`, `:`, `?`, `*`, `[`, `\`, `..`,
+// leading/trailing `/`). Letters, digits, `-`, `_`, `.`, `/` only.
+function assertGitRef(name: string, label: string): void {
+  if (!name || !/^[A-Za-z0-9._/-]+$/.test(name) || name.includes("..") ||
+      name.startsWith("-") || name.startsWith("/") || name.endsWith("/")) {
+    throw new Error(`Invalid ${label} '${name}'`);
+  }
+}
+
 const handlers: Record<string, ToolHandler> = {
   "sync-submodule": async (args) => {
     const { name } = args;
     if (!name) throw new Error("name parameter required");
+    assertSubmodule(name);
 
     const submodulePath = path.join(ROOT_DIR, name);
     try {
@@ -26,31 +70,34 @@ const handlers: Record<string, ToolHandler> = {
       throw new Error(`Submodule '${name}' not found at ${submodulePath}`);
     }
 
-    execSync("git submodule update --remote", {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-    });
+    run("git", ["submodule", "update", "--remote", "--", name]);
 
-    const commit = execSync(`git -C ${name} rev-parse --short HEAD`, {
-      cwd: ROOT_DIR,
-      encoding: "utf-8",
-    }).trim();
+    const commit = run("git", [
+      "-C",
+      name,
+      "rev-parse",
+      "--short",
+      "HEAD",
+    ]).trim();
 
-    execSync(`git add ${name}`, { cwd: ROOT_DIR, stdio: "pipe" });
+    run("git", ["add", "--", name]);
 
-    const status = execSync("git status --porcelain", {
-      cwd: ROOT_DIR,
-      encoding: "utf-8",
-    });
+    // Status-porcelain restricted to the submodule path; reliably detects
+    // whether THIS submodule reference changed.
+    const status = run("git", ["status", "--porcelain", "--", name]);
 
-    if (!status.includes(name)) {
+    if (!status.trim()) {
       return `✓ Submodule '${name}' already up to date (${commit})`;
     }
 
-    execSync(`git commit -m "chore: update ${name} submodule reference"`, {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-    });
+    // Commit only the submodule pointer; do not sweep unrelated staged files.
+    run("git", [
+      "commit",
+      "-m",
+      `chore: update ${name} submodule reference`,
+      "--",
+      name,
+    ]);
 
     return `✓ Synced '${name}' to ${commit}`;
   },
@@ -58,46 +105,33 @@ const handlers: Record<string, ToolHandler> = {
   "create-feature-branch": async (args) => {
     const { name } = args;
     if (!name) throw new Error("name parameter required");
+    assertGitRef(name, "feature name");
+    const branchName = `feature/${name}`;
+
+    // Checkout the base branch FIRST so any submodule-pointer commits
+    // produced by sync-submodule land on `develop`, not on whatever
+    // branch happened to be current when the tool was invoked.
+    checkoutDevBaseAndPull();
 
     await handlers["sync-submodule"]({ name: "moovie" });
     await handlers["sync-submodule"]({ name: "backend" });
 
-    execSync("git checkout develop || git checkout dev", {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-      shell: "/bin/bash",
-    } as never);
-    execSync("git pull", { cwd: ROOT_DIR, stdio: "pipe" });
-
-    const branchName = `feature/${name}`;
-    execSync(`git checkout -b ${branchName}`, {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-    });
-
+    run("git", ["checkout", "-b", branchName]);
     return `✓ Created feature branch '${branchName}' (submodules synced)`;
   },
 
   "create-release-branch": async (args) => {
     const { version } = args;
     if (!version) throw new Error("version parameter required");
+    assertGitRef(version, "version");
+    const branchName = `release/${version}`;
+
+    checkoutDevBaseAndPull();
 
     await handlers["sync-submodule"]({ name: "moovie" });
     await handlers["sync-submodule"]({ name: "backend" });
 
-    execSync("git checkout develop || git checkout dev", {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-      shell: "/bin/bash",
-    } as never);
-    execSync("git pull", { cwd: ROOT_DIR, stdio: "pipe" });
-
-    const branchName = `release/${version}`;
-    execSync(`git checkout -b ${branchName}`, {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-    });
-
+    run("git", ["checkout", "-b", branchName]);
     return `✓ Created release branch '${branchName}' (submodules synced)`;
   },
 
@@ -105,47 +139,34 @@ const handlers: Record<string, ToolHandler> = {
     const { title, description } = args;
     if (!title) throw new Error("title parameter required");
 
-    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
-      cwd: ROOT_DIR,
-      encoding: "utf-8",
-    }).trim();
+    const branch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
+    assertGitRef(branch, "current branch");
 
-    let baseRef = "main";
+    let baseRef: "main" | "develop" = "main";
     if (branch.startsWith("feature/") || branch.startsWith("fix/")) {
       baseRef = "develop";
-    } else if (branch.startsWith("release/")) {
-      baseRef = "main";
     }
 
-    execSync(`git push -u origin ${branch}`, {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-    });
+    run("git", ["push", "-u", "origin", branch]);
 
-    const ghArgs = [`--title ${JSON.stringify(title)}`, `--base ${baseRef}`];
+    const ghArgv = ["pr", "create", "--title", title, "--base", baseRef];
     if (description) {
-      ghArgs.push(`--body ${JSON.stringify(description)}`);
+      ghArgv.push("--body", description);
     }
-    execSync(`gh pr create ${ghArgs.join(" ")}`, {
-      cwd: ROOT_DIR,
-      stdio: "pipe",
-    });
+    run("gh", ghArgv);
 
     return `✓ PR created: ${branch} → ${baseRef}`;
   },
 
   "check-status": async () => {
-    const moovieStatus = execSync(
-      "git -C moovie rev-parse HEAD && git -C moovie rev-parse origin/main",
-      { cwd: ROOT_DIR, encoding: "utf-8" }
-    );
-    const backendStatus = execSync(
-      "git -C backend rev-parse HEAD && git -C backend rev-parse origin/main",
-      { cwd: ROOT_DIR, encoding: "utf-8" }
-    );
+    const lines = (s: string) => s.trim().split("\n");
 
-    const moovieLines = moovieStatus.trim().split("\n");
-    const backendLines = backendStatus.trim().split("\n");
+    const moovieLines = lines(
+      run("git", ["-C", "moovie", "rev-parse", "HEAD", "origin/main"])
+    );
+    const backendLines = lines(
+      run("git", ["-C", "backend", "rev-parse", "HEAD", "origin/main"])
+    );
 
     const moovieStale = moovieLines[0] !== moovieLines[1];
     const backendStale = backendLines[0] !== backendLines[1];
@@ -234,7 +255,7 @@ const toolDefinitions = [
 ];
 
 const server = new Server(
-  { name: "repo-management", version: "1.1.0" },
+  { name: "repo-management", version: "1.2.0" },
   { capabilities: { tools: {} } }
 );
 

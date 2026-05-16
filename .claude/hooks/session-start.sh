@@ -18,9 +18,11 @@ rule_files=("$repo_root"/rules/*.md)
 skill_dirs=("$repo_root"/.claude/skills/*/)
 shopt -u nullglob
 
-# Filter out README.md (directory readme, not a rule)
+# Filter out README.md (directory readme, not a rule). Iterate without :-
+# default expansion, which would otherwise inject an empty entry on an empty
+# array and produce off-by-one counts + a leading bare comma in output.
 filtered_rules=()
-for f in "${rule_files[@]:-}"; do
+for f in "${rule_files[@]}"; do
   name=$(basename "$f" .md)
   [ "$name" = "README" ] && continue
   filtered_rules+=("$name")
@@ -34,10 +36,13 @@ if command -v jq >/dev/null 2>&1; then
   mcp_count=$(jq -r '.mcpServers | length' "$repo_root/.mcp.json" 2>/dev/null || echo 0)
 fi
 
-rule_names=$(IFS=, ; echo "${filtered_rules[*]}" | sed 's/,/, /g')
+rule_names=""
+if [ "$rule_count" -gt 0 ]; then
+  rule_names=$(IFS=, ; echo "${filtered_rules[*]}" | sed 's/,/, /g')
+fi
 
 skill_names=""
-for d in "${skill_dirs[@]:-}"; do
+for d in "${skill_dirs[@]}"; do
   name=$(basename "$d")
   skill_names="${skill_names:+$skill_names, }$name"
 done
