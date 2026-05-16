@@ -44,9 +44,13 @@ fi
 VIOLATIONS=0
 DOCS_MODIFIED=0
 
-# Check if docs were modified anywhere — root or subdir README/CLAUDE.md
-# (per rules/DOCS_UP_TO_DATE.md, a relevant subdirectory README also satisfies)
-if echo "$CHANGED_FILES" | grep -qE "(^|/)(README|CLAUDE)\.md$"; then
+# Check if any documentation file was modified. Per rules/DOCS_UP_TO_DATE.md
+# a doc update can land in README/CLAUDE.md (root or subdir), an agent spec
+# (agents/*.md), a rule definition (rules/*.md), a skill (.claude/skills/),
+# a hook README, or the audit/research docs (research/*.md). Any .md change
+# under those paths satisfies the rule — the underlying intent is that human-
+# readable behavior documentation stays in sync with code.
+if echo "$CHANGED_FILES" | grep -qE '(^|/)(README|CLAUDE)\.md$|^agents/.*\.md$|^rules/.*\.md$|^\.claude/.*\.md$|^research/.*\.md$|^commands/.*\.md$'; then
   DOCS_MODIFIED=1
 fi
 
