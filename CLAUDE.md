@@ -21,10 +21,15 @@ MoovieAi/
 ├── moovie/           # Git submodule: Flutter frontend app
 ├── backend/          # Git submodule: Kotlin/Ktor backend
 ├── research/         # Research docs, analysis, design docs
-├── plugins/          # Claude Code MCP plugins and servers
-├── rules/            # Linting, formatting, ecosystem policies
+├── plugins/          # Claude Code MCP servers (e.g. repo-management)
+├── rules/            # Ecosystem policies + lint rules
+├── patches/          # npm patches applied by patch-package on install
+├── commands/         # Slash commands (/new-usecase, /review-pr, ...)
+├── agents/           # Pipeline + reviewer agents (auto-discovered Markdown)
 ├── .claude/skills/   # Project-level Claude Code skills (auto-discovered)
-├── agents/           # Custom Claude agents for specialized tasks
+├── .claude/hooks/    # Pre/Post/SessionStart hooks enforcing rules
+├── .claude/CLAUDE.md # Claude/tooling-specific behavior (companion to this file)
+├── .mcp.json         # MCP server registry (repo-management + linear)
 └── CLAUDE.md         # This file
 ```
 
@@ -130,7 +135,7 @@ git commit -m "chore: update moovie submodule reference"
 Design docs, architecture decisions, API specs, performance analysis, user research. Reference these when understanding system-wide decisions or context for features.
 
 ### `plugins/`
-Claude Code MCP plugins and servers (e.g., repo-management). Register in `.claude/settings.json` to extend Claude's capabilities. Pre-registered and ready to use.
+Claude Code MCP servers (e.g. `repo-management`). Registered in `.mcp.json` at repo root — Claude Code loads them automatically each session. Bootstrap builds the TypeScript source to `plugins/repo-management/dist/`.
 
 ### `rules/`
 Linting configurations, formatter rules, ecosystem policies. Reference when style issues arise or when implementing ecosystem-wide standards.
@@ -144,7 +149,23 @@ Project-level Claude Code skills, auto-discovered each session. Use when impleme
 - `verify-docs-before-pr` — Documentation verification before opening a PR
 
 ### `agents/`
-Custom Claude agents for specialized tasks (frontend, backend, CI/CD, architecture review). Register in `.claude/settings.json` or invoke via `/agent-name`. Inherit ecosystem conventions and pre-authorized tools.
+Auto-discovered Markdown agent definitions (no registration needed). Dispatched via the `Task` tool's `subagent_type` parameter.
+
+**Pipeline agents** (feature development):
+- `pm-spec` — writes feature specs / design docs
+- `architect-review` — reviews specs for ecosystem feasibility
+- `implementer-tester` — implements + tests features inside the `moovie` submodule
+- `validator` — read-only quality + correctness check across submodules; surfaces inline PR comments
+
+**Reviewer agents** (PR review):
+- `reviewer` — orchestrator; dispatches the three sub-reviewers, dedupes, posts one batched GitHub review with severity badges
+- `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` — scoped sub-reviewers, one domain each
+
+### `commands/`
+Slash commands invoked via `/<name>`. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent.
+
+### `.claude/hooks/`
+Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rules/` is backed by a hook here — see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table.
 
 ---
 
@@ -256,7 +277,7 @@ Example: `fix: correct auth token expiry logic`
 - Release PRs target `main`
 - Use Conventional Commits format in PR title
 - No coauthors in PR descriptions
-- **Before opening PR:** Run `verify-docs-before-pr` skill to ensure README.md/CLAUDE.md are updated if code changes affect docs
+- **Docs sync is hook-enforced:** `.claude/hooks/check-docs-sync.sh` blocks `gh pr create` / `git push` when public-surface changes are missing matching doc updates — fix the docs before retrying. The `verify-docs-before-pr` skill is available for a manual pre-flight check but is not required.
 
 ### Submodule Operations
 Handled by `repo-management` MCP server:
@@ -283,22 +304,27 @@ Displays automatically in the bottom right. Helps identify when to compact conve
 
 At the start of each session, load these resources:
 
-**1. Rules** — Organizational policies that govern all work:
-- [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` config must use portable relative paths, no `~/` or absolute user paths
-- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (moovie, backend) must remain AI-agnostic, no CLAUDE.md/.claude/ in submodules
-- [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use Co-Authored-By trailers in commits, single author always
-- [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python dependencies must be in local venv, never global install
+**1. Rules** — Organizational policies that govern all work (each backed by a hook):
+- [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use `Co-Authored-By` trailers in commits, single author always
+- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (`moovie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
+- [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` + `.mcp.json` config must use portable relative paths, no `~/` or absolute user paths
+- [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python `pip` / `uv` / `poetry` / `conda install` must run inside an active virtualenv
+- [`rules/DOCS_UP_TO_DATE.md`](rules/DOCS_UP_TO_DATE.md) — public-surface changes must update docs in the same PR (blocked by `check-docs-sync.sh` on `gh pr create` / `git push`)
 
-**2. Plugins** — MCP servers available in this project:
-- `repo-management` — Manage submodules, branches, PRs (configured in `.mcp.json`)
-- `linear` — Linear workspace integration (configured in `.mcp.json`)
+Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility`, `feature-architecture`, `feature-implementation`, `feature-testing`, `localization`, `ui-architecture`, `variable-naming`. See [`rules/README.md`](rules/README.md) for the full enforcement map.
 
-**3. Skills** — Project-level Claude Code skills in `.claude/skills/` (invoke via `Skill("skill-name")`):
-- `setting-up-linear-mcp` — Configure Linear MCP and securely store token
-- `moovie-research-format` — Standardized format for design docs, architecture decisions, research
-- `verify-docs-before-pr` — Documentation verification before PR creation
+**2. Plugins** — MCP servers registered in `.mcp.json`:
+- `repo-management` — manage submodules, branches, PRs
+- `linear` — Linear workspace integration (token in gitignored `.claude/settings.local.json`)
 
-Scaffolding workflows (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`) live under `commands/` and are invoked as slash commands, not skills. See [`agents/implementer-tester.md`](agents/implementer-tester.md) for pipeline usage.
+**3. Skills** — auto-discovered from `.claude/skills/<name>/SKILL.md`:
+- `setting-up-linear-mcp` — configure Linear MCP and securely store the token
+- `moovie-research-format` — standardized format for design docs / architecture decisions / research
+- `verify-docs-before-pr` — manual docs check (the `check-docs-sync.sh` hook already blocks PRs / pushes that fall out of sync — invoke this skill only for a pre-flight self-check)
+
+**4. Slash commands** — invoked via `/<name>`, defined under `commands/`:
+- `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — scaffolding, feed into the `implementer-tester` agent
+- `/review-pr <PR#>` — runs the `reviewer` agent against a GitHub PR
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
