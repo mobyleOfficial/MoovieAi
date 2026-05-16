@@ -1341,7 +1341,8 @@ When the bump PR cannot land:
    ```
 3. **Tag the meta-repo branch** the user is on with a marker file `.claude/UD_STALE_REFS_<slug>` so subsequent runs can detect the divergence:
    ```bash
-   echo "stale refs after bump PR #${BUMP_PR} failed at $(date -Iseconds)" > ".claude/UD_STALE_REFS_${slug}"
+   # Use explicit format string — BSD `date` (default macOS) lacks the -I flag and the GNU `date -Iseconds` extension.
+   echo "stale refs after bump PR #${BUMP_PR} failed at $(date '+%Y-%m-%dT%H:%M:%S%z')" > ".claude/UD_STALE_REFS_${slug}"
    git add ".claude/UD_STALE_REFS_${slug}" && git commit -m "chore(${slug}): mark stale submodule refs after bump-PR failure" || true
    ```
    The marker exits cleanly and the user can clean up after recovery.
@@ -1390,11 +1391,25 @@ while iter < max_iter:
     for thread in open_threads:
         decision = judge_finding(thread, severity, confidence, spec_context)
         if decision == "fix":
-            apply_fix(thread)  # Read/Edit/Write per the thread's location + suggestion
+            # apply_fix returns "ok" on success, "verification_failed" if Step 3 verification fails (already reverted),
+            # or "deferred" if suggestion was unclear and judge_finding fell through.
+            result = apply_fix(thread)  # see Primitive reference for the 3-step contract
+            if result == "verification_failed":
+                attempts = increment_fix_attempts(thread.id)  # see fix_attempts primitive
+                if attempts >= 3:
+                    escalate(pr, thread, reason="3 fix attempts failed verification")
+                    return "ABORTED"
+                # do NOT commit; loop continues to next thread, retries this one in the next iteration
+                log_decision(iter, thread, f"fix-attempt-{attempts}-failed", None)
+                continue
+            if result == "deferred":
+                escalate(pr, thread, reason="defer:suggestion unclear")
+                return "ABORTED"
             commit_and_push(message=f"fix({slug}): address review finding — {thread.title}")
             sha = head_sha()
             reply_thread(pr, thread.id, f"Fixed in {sha}. {one_line_how_we_fixed_it}")
             resolve_thread(thread.node_id)
+            reset_fix_attempts(thread.id)  # clean counter on success
             log_decision(iter, thread, "fix", sha)
         elif decision == "reject":
             reply_thread(pr, thread.id, f"Won't fix. {one_paragraph_justification}")
@@ -1439,11 +1454,12 @@ The loop's pseudocode names map to these concrete operations. The implementer mu
 | `gh_root_comments(pr)` | `gh api --paginate "repos/${REPO}/pulls/$pr/comments" --jq '[.[] \| select(.in_reply_to_id == null) \| {id, node_id, path, line, body, user: .user.login}]'` (returns JSON array) |
 | `gh_unresolved_threads(pr)` | Paginated GraphQL query (see GH Thread Authoring `find_thread` pattern) filtered to `nodes[] \| select(.isResolved == false)` — returns array of `{id, comments[]}` |
 | `dispatch_reviewers_audit_only(pr, phase, reviewers[])` | A single message containing one `Task(subagent_type=<r>, prompt="mode: \"audit-only\"\nslug=$slug\npr=$pr\niter=$iter\n...")` per reviewer in `reviewers`. Parse each return via the JSON extractor (see Sub-Agent Dispatch > Parsing). Merge `.comments // .findings` arrays. |
-| `dedupe(findings, prior_comments)` | For each finding, compute `hash = sha1(path + ":" + line + ":" + first-80-chars-of-body)`. For each `prior_comments[]`, compute the same hash. Drop findings whose hash matches an unresolved prior comment. |
+| `dedupe(findings, prior_comments)` | Normalize body BEFORE hashing — strip leading severity-badge image markdown (matches `^\s*!\[[^\]]*\]\([^)]*gstatic[^)]*\)\s*\n+`, plus the optional `**CRITICAL**` text prefix and any stacked security-* badges), then take first 80 chars of remaining body. Compute `hash = sha1_hex(path + ":" + line + ":" + normalized_body[:80])` via Python (portable across macOS/Linux): `hash=$(printf -- '%s' "$key" \| python3 -c 'import hashlib,sys; print(hashlib.sha1(sys.stdin.read().encode()).hexdigest())')`. Apply same normalize+hash to each `prior_comments[]`. Drop findings whose hash matches an unresolved prior comment. The badge-strip is critical — `post_inline_review` prepends a badge to our posted comments, so raw-finding hashes would never match stored-comment hashes without it. |
 | `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. |
 | `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. |
-| `apply_fix(thread)` | (1) Use `Read` to inspect cited file (`thread.location` = `path:line`). (2) Use `Edit` (or `Write` for new files) per the thread's `Fix:` suggestion. If suggestion is unclear → fall back to `judge_finding(...) == "defer"`. (3) **Run the phase's verification command** before returning — must pass before `commit_and_push` is called. Verification per phase: spec/plan phases run `.claude/hooks/validate-audit-only.sh` against any modified audit-only-aware agents + a markdown link checker on any links touched; impl phase in moovie runs `flutter analyze` then `flutter test` from inside `moovie/`; impl phase in backend runs `./gradlew test` from inside `backend/`. If verification fails: revert the edit (`git checkout -- <files>`), increment the per-thread fix-attempt counter, and return `"verification_failed"` (treated like a failed fix attempt — caller retries up to 3 then escalates per `judge_finding` special cases). |
-| `commit_and_push(message)` | Preconditions: `apply_fix` has returned successfully (verification passed). Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
+| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, or `"deferred"`. The caller's pseudocode (Step F above) branches on this value. <br><br> **Step 1 — capture pre-state for symmetric revert.** Record the set of files that exist under the working tree relevant to the edit. Stash any prior uncommitted changes: `git stash push -u -m "ud-apply_fix-pre"`. Pop on success or on revert (see Step 3). The `-u` flag stashes untracked too — so when we revert, `Write`-created new files (which are untracked at the moment of revert) also come back to the stash and get popped or dropped. <br><br> **Step 2 — apply.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Use `Edit` for existing files, or `Write` for new files, per the thread's `Fix:` suggestion. If the suggestion is unparseable or contradictory: `git stash drop` (discard the stash, nothing was changed) and return `"deferred"`. <br><br> **Step 3 — verify, with symmetric revert on failure.** Run the phase's verification command (see below). On PASS: `git stash drop` (discard pre-state stash — the edit stands), return `"ok"`. On FAIL: `git restore --staged --worktree -- .` to unstage and discard tracked-file modifications, plus `git clean -fd -- <edited-paths>` to delete any `Write`-created untracked files in just the touched paths (NOT a repo-wide `git clean -fd`, which would delete unrelated untracked work). Then `git stash pop` to restore the pre-existing uncommitted state. Return `"verification_failed"`. <br><br> **Per-phase verification commands:** <br>• spec/plan phases: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + a markdown link checker (e.g. `npx markdown-link-check` or a Python `urllib` walk) on any link touched. <br>• impl phase in moovie: `cd moovie && flutter analyze && flutter test` <br>• impl phase in backend: `cd backend && ./gradlew test` <br><br> The `git clean -fd -- <edited-paths>` constraint is what stops the original "git checkout -- can't remove Write-created new files" bug. The path-list comes from the staged + untracked diff captured between Steps 1 and 3. |
+| `commit_and_push(message)` | Preconditions: `apply_fix` returned `"ok"` (verification passed). Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
+| `increment_fix_attempts(thread_id)` / `reset_fix_attempts(thread_id)` | Per-thread fix-attempt counter. **Storage:** in-process bash associative array `FIX_ATTEMPTS` (`declare -A FIX_ATTEMPTS` at agent start), plus a mirrored line in `research/features/<slug>/review-log.md` so the counter survives mid-loop interruption + re-entry. **Key:** `thread_id` (the `node_id` from `gh_root_comments`, stable across passes). **Increment:** `FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1)); echo "fix_attempts[$thread_id]=${FIX_ATTEMPTS[$thread_id]}" >> review-log.md`; returns the new value. **Reset (on successful commit):** `unset 'FIX_ATTEMPTS[$thread_id]'; echo "fix_attempts[$thread_id]=0" >> review-log.md` (mirror records the reset). **Recovery on re-entry:** before entering the loop, scan review-log.md for the latest `fix_attempts[$id]=N` line per id (last-write-wins) and restore the in-memory map. **Cap:** 3 (referenced in the pseudocode above and in Safety Circuits escalation triggers). |
 | `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
 | `reply_thread(pr, comment_id, body)` | `gh api "repos/${REPO}/pulls/$pr/comments/$comment_id/replies" -X POST -f body="$body"` |
 | `resolve_thread(node_id)` | GraphQL `resolveReviewThread` mutation (see GH Thread Authoring); guarded with `isResolved` check to skip already-resolved threads. |
@@ -1529,11 +1545,14 @@ gh api "repos/${REPO}/pulls/<PR>/comments/<root_comment_id>/replies" \
 
 ```bash
 # Paginated fetch — covers PRs with > 100 review threads.
+# First call MUST omit the `after` argument entirely (or pass JSON null). Passing the literal string
+# "null" via `-f after="null"` sends the four-character string and GraphQL rejects it with a cursor
+# validation error. We build the args array conditionally so the first iteration sends no `after`,
+# and subsequent iterations send the actual cursor.
 find_thread() {
-  local pr="$1" target_comment_id="$2" cursor="null"
+  local pr="$1" target_comment_id="$2" cursor=""
   while :; do
-    local page
-    page=$(gh api graphql -f query="
+    local args=(-f query="
       query(\$owner:String!,\$repo:String!,\$pr:Int!,\$after:String){
         repository(owner:\$owner,name:\$repo){
           pullRequest(number:\$pr){
@@ -1543,7 +1562,12 @@ find_thread() {
             }
           }
         }
-      }" -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$pr" -f after="$cursor")
+      }" -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$pr")
+    if [ -n "$cursor" ]; then
+      args+=(-f after="$cursor")
+    fi
+    local page
+    page=$(gh api graphql "${args[@]}")
     local hit
     hit=$(echo "$page" | jq -r --argjson id "$target_comment_id" \
       '.data.repository.pullRequest.reviewThreads.nodes
@@ -1638,7 +1662,7 @@ The `Task` tool returns a single text blob (the sub-agent's last message). For a
 # Assuming the sub-agent's output is captured in $SUBAGENT_OUT.
 # Sub-agent prose preceding the payload may itself contain ```json example blocks (e.g., schema docs).
 # Extract the LAST fenced ```json block — the payload is always emitted last by audit-only sub-agents.
-JSON=$(printf '%s' "$SUBAGENT_OUT" | python3 -c '
+JSON=$(printf -- '%s' "$SUBAGENT_OUT" | python3 -c '
 import sys, re
 blocks = re.findall(r"```json\s*\n(.*?)\n```", sys.stdin.read(), flags=re.S)
 sys.stdout.write(blocks[-1] if blocks else "")
