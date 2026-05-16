@@ -4,7 +4,7 @@
 #   1. Initialize git submodules (moovie + backend)
 #   2. Install root npm deps (linear-mcp)
 #   3. Install + build the repo-management MCP plugin
-#   4. Make .claude/hooks/*.sh and .claude/bin/*.sh executable
+#   4. Make every .claude/**/*.sh shell script executable
 #   5. Seed .claude/settings.local.json from the template if missing
 #   6. Seed .claude/task/pipeline-queue.json from the template if missing
 #
@@ -67,18 +67,11 @@ if [ -d plugins/repo-management ]; then
   )
 fi
 
-# --- 4. Hook executability ----------------------------------------------------
+# --- 4. Shell-script executability --------------------------------------------
 
-if [ -d .claude/hooks ]; then
-  log "Marking .claude/hooks/*.sh executable..."
-  chmod +x .claude/hooks/*.sh 2>/dev/null || true
-fi
-if [ -d .claude/bin ]; then
-  log "Marking .claude/bin/*.sh executable..."
-  chmod +x .claude/bin/*.sh 2>/dev/null || true
-fi
 if [ -d .claude ]; then
-  chmod +x .claude/*.sh 2>/dev/null || true
+  log "Marking .claude/**/*.sh executable..."
+  find .claude -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
 fi
 
 # --- 5. settings.local.json ---------------------------------------------------
