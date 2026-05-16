@@ -140,6 +140,11 @@ const handlers: Record<string, ToolHandler> = {
     if (!title) throw new Error("title parameter required");
 
     const branch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
+    if (branch === "HEAD") {
+      throw new Error(
+        "Cannot open a pull request from a detached HEAD. Check out a branch first."
+      );
+    }
     assertGitRef(branch, "current branch");
 
     let baseRef: "main" | "develop" = "main";
@@ -149,9 +154,15 @@ const handlers: Record<string, ToolHandler> = {
 
     run("git", ["push", "-u", "origin", branch]);
 
+    // `gh pr create` needs either an explicit body or --fill in non-interactive
+    // contexts (which is how the MCP server is always invoked) — otherwise it
+    // hangs waiting for an editor. --fill seeds title/body from commit log,
+    // overridden by --title we already pass.
     const ghArgv = ["pr", "create", "--title", title, "--base", baseRef];
     if (description) {
       ghArgv.push("--body", description);
+    } else {
+      ghArgv.push("--fill");
     }
     run("gh", ghArgv);
 

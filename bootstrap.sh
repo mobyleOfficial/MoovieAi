@@ -30,6 +30,7 @@ require() {
 require git
 require npm
 require jq
+require gh    # used by the repo-management MCP plugin's open-pull-request tool
 
 # --- 1. Submodules ------------------------------------------------------------
 
