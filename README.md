@@ -4,11 +4,16 @@ Meta-repository for the Moovie ecosystem. Central hub for shared resources, AI-a
 
 ## Quick Start
 
-Clone with submodules:
+Clone with submodules and run the bootstrap script:
 ```bash
 git clone --recurse-submodules https://github.com/mobyleOfficial/MoovieAi
 cd MoovieAi
+./bootstrap.sh
 ```
+
+The bootstrap initializes submodules, installs root + plugin npm dependencies, marks `.claude/hooks/*.sh` executable, and seeds `.claude/settings.local.json` from a template. Idempotent — safe to re-run.
+
+After bootstrap, set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json` (gitignored) before using the Linear MCP server. See [`.claude/skills/setting-up-linear-mcp/SKILL.md`](.claude/skills/setting-up-linear-mcp/SKILL.md).
 
 ## Structure
 
@@ -17,7 +22,7 @@ cd MoovieAi
 - **[research/](research)** — Design docs, API specs, architecture decisions
 - **[plugins/](plugins)** — Claude Code MCP servers and tools
 - **[rules/](rules)** — Linting, formatting, ecosystem policies
-- **[skills/](skills)** — Standardized workflows and documentation formats
+- **[.claude/skills/](.claude/skills)** — Project-level Claude Code skills (auto-discovered)
 - **[agents/](agents)** — Custom Claude agents for specialized tasks
 
 See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete development guide.
@@ -52,18 +57,9 @@ Automates repository operations:
 
 ## Linear MCP Integration
 
-This repo supports **Linear MCP** for AI-assisted issue management:
+Connect Linear to Claude Code for issue management in development sessions.
 
-```bash
-# Configure Linear in Claude Code (one-time setup per developer)
-- Generate API token at: https://linear.app/mobyle/settings/api
-- Update .claude/settings.json with workspace/project IDs
-- Store token in .claude/settings.local.json (gitignored)
-```
-
-**Setup Guide:** Use the `setting-up-linear-mcp` skill in Claude Code for step-by-step configuration.
-
-**Default project:** MOO (Moovie) — all Claude sessions default to this project.
+**Setup:** Use skill `Skill("setting-up-linear-mcp")` for one-time configuration. Default project: MOO (Moovie).
 
 ## Frontend (Moovie)
 
@@ -122,7 +118,7 @@ status: draft|approved|archived
 ## Next Steps
 ```
 
-See [skills/moovie-research-format/](skills/moovie-research-format/SKILL.md) for full specification.
+See [.claude/skills/moovie-research-format/](.claude/skills/moovie-research-format/SKILL.md) for full specification.
 
 ## Submodule Workflows
 

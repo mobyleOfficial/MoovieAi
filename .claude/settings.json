@@ -1,23 +1,4 @@
 {
-  "mcpServers": {
-    "repo-management": {
-      "command": "node",
-      "args": ["../plugins/repo-management/dist/index.js"]
-    },
-    "linear": {
-      "command": "npx",
-      "args": ["@linear/mcp"],
-      "env": {
-        "LINEAR_WORKSPACE_ID": "mobyle",
-        "LINEAR_PROJECT_ID": "MOO",
-        "LINEAR_API_TOKEN": "${LINEAR_API_TOKEN}"
-      }
-    }
-  },
-  "env": {
-    "LINEAR_WORKSPACE_ID": "mobyle",
-    "LINEAR_PROJECT_ID": "MOO"
-  },
   "permissions": {
     "allow": [
       "Bash(git status)",
@@ -49,25 +30,56 @@
       "Bash(which *)"
     ]
   },
-  "extraKnownMarketplaces": {
-    "local-skills": {
-      "source": {
-        "source": "directory",
-        "path": "./skills"
-      }
-    }
-  },
   "statusLine": {
     "type": "command",
     "command": "./.claude/statusline.sh"
   },
   "hooks": {
+    "SessionStart": [{
+      "matcher": ".*",
+      "hooks": [{
+        "type": "command",
+        "command": "./.claude/hooks/session-start.sh"
+      }]
+    }],
     "UserPromptSubmit": [{
       "matcher": ".*",
       "hooks": [{
         "type": "command",
         "command": "./.claude/validate-config.sh",
         "statusMessage": "Validating Claude config portability..."
+      }]
+    }],
+    "PreToolUse": [{
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "./.claude/hooks/block-destructive-commands.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-coauthor.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-python-env.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-submodule-ai.sh"
+        },
+        {
+          "type": "command",
+          "command": "./.claude/hooks/check-docs-sync.sh"
+        }
+      ]
+    }],
+    "PostToolUse": [{
+      "matcher": "Edit|Write",
+      "hooks": [{
+        "type": "command",
+        "command": "./.claude/hooks/format-code.sh"
       }]
     }]
   }

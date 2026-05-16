@@ -18,7 +18,7 @@ FORBIDDEN_PATTERNS=(
 )
 
 # Files to check (JSON configs only — actual user config, not tools)
-CONFIG_FILES=(.claude/settings.json .claude/settings.local.json)
+CONFIG_FILES=(.claude/settings.json .claude/settings.local.json .mcp.json)
 
 for file in "${CONFIG_FILES[@]}"; do
   [ -f "$file" ] || continue

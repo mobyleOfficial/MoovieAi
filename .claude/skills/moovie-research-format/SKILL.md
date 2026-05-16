@@ -116,17 +116,37 @@ Observed in current codebase [Source: observed in backend/routes.kt, lines 15-30
 
 ## Filename Convention
 
-`YYYY-MM-DD-[topic].md`
+Two valid layouts depending on document type:
+
+### Ad-hoc research (default)
+
+`research/YYYY-MM-DD-[topic].md`
 
 Examples:
-- `2026-05-14-api-versioning.md`
-- `2026-04-20-database-encryption.md`
-- `2026-03-15-mobile-release-process.md`
+- `research/2026-05-14-api-versioning.md`
+- `research/2026-04-20-database-encryption.md`
+- `research/2026-03-15-mobile-release-process.md`
 
 **Why date prefix:**
 - Sorts chronologically in file system
 - Shows age at a glance
 - Easy to archive old decisions
+
+### Pipeline-generated documents
+
+When a document is produced by the feature-development pipeline (pm-spec → architect-review → implementer-tester → validator), it lives in a category-specific subdirectory under `research/`:
+
+| Subdirectory | Produced by | Purpose |
+|--------------|-------------|---------|
+| `research/requests/<feature>.md` | maintainer | Initial feature request |
+| `research/specs/<feature>.md` | `pm-spec` agent | Formal specification |
+| `research/reviews/<feature>.md` | `architect-review` agent | Architecture review verdict |
+| `research/reviews/<feature>-code-review.md` | `validator` agent | Post-implementation code review |
+| `research/archive/<feature>.md` | manual | Completed / shelved features |
+
+Filename inside the subdirectory is based on the feature slug (e.g. `<feature>.md` for specs, `<feature>-code-review.md` for code reviews — no date prefix; pipeline stages map to a single feature, so directory + slug already disambiguate). The metadata YAML block at the top still carries the `date` field.
+
+Use the flat `research/YYYY-MM-DD-topic.md` layout for any research that is not a pipeline output.
 
 ## Code Examples
 
@@ -144,13 +164,13 @@ Examples:
 | Missing trade-offs | Add explicit "why not other option" |
 | No decision | End with clear "Recommendation:" |
 | Vague timeline | Use specific dates, not "soon" |
-| Wrong filename | Use YYYY-MM-DD-topic.md format |
+| Wrong filename | Use `research/YYYY-MM-DD-topic.md` for ad-hoc, or `research/<subdir>/<feature>.md` for pipeline outputs |
 | No metadata | Add YAML block at top |
 | Buried recommendation | Put in Executive Summary or Verdict |
 
 ## Quick Checklist
 
-- [ ] Filename: `YYYY-MM-DD-[topic].md`
+- [ ] Filename: `research/YYYY-MM-DD-[topic].md` (ad-hoc) **or** `research/<subdir>/<feature>.md` (pipeline output)
 - [ ] Metadata block with date, author, status
 - [ ] Executive summary (< 2 paragraphs)
 - [ ] All factual claims have sources

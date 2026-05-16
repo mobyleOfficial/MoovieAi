@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
-package-lock.json
+
+# Plugin build output (rebuilt by bootstrap.sh)
+plugins/*/dist/
 
 # Python
 venv/
@@ -42,3 +44,6 @@ Thumbs.db
 
 # Local overrides
 .claude/settings.local.json
+
+# Pipeline runtime state (seeded from .claude/task/pipeline-queue.template.json)
+.claude/task/pipeline-queue.json
