@@ -32,15 +32,18 @@ if [ ! -x "$verify" ]; then
   exit 0
 fi
 
-if ! "$verify" >/tmp/check-docs-sync.$$ 2>&1; then
+# Use mktemp so the path is unpredictable + per-user — avoids the
+# symlink-clobber attack a predictable /tmp/<name>.$PID would enable.
+tmpfile=$(mktemp -t check-docs-sync.XXXXXX) || exit 0
+trap 'rm -f "$tmpfile"' EXIT
+
+if ! "$verify" >"$tmpfile" 2>&1; then
   echo "❌ DOCS_UP_TO_DATE rule violation:" >&2
-  cat /tmp/check-docs-sync.$$ >&2
+  cat "$tmpfile" >&2
   echo "" >&2
   echo "   Update README.md / CLAUDE.md / relevant subdir README in this branch before pushing or opening a PR." >&2
   echo "   See rules/DOCS_UP_TO_DATE.md." >&2
-  rm -f /tmp/check-docs-sync.$$
   exit 2
 fi
 
-rm -f /tmp/check-docs-sync.$$
 exit 0
