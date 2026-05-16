@@ -160,7 +160,9 @@ For EACH surviving finding:
 - If exact line is unclear, pick the most relevant nearby changed line
 - NEVER leave location empty
 
-### Step 9 — Post inline PR comments
+### Step 9 — Post inline PR comments as a single review
+
+Use the **reviews API** (`POST /repos/{owner}/{repo}/pulls/{N}/reviews`), not the one-at-a-time comments endpoint. The reviews API batches every finding under a single review header in GitHub's UI — same visual grouping that the gemini-code-assist bot uses. The one-at-a-time comments endpoint creates loose floating comments that clutter the conversation.
 
 Get the head SHA:
 
@@ -168,21 +170,57 @@ Get the head SHA:
 SHA=$(gh pr view <N> --json headRefOid --jq .headRefOid)
 ```
 
-For each finding, post:
+Build the review payload (one JSON object with a top-level `body` summary + a `comments` array, each entry positioned at a `path` + `line`):
 
 ```bash
-gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments -X POST \
-  -f path="<path>" \
-  -F line=<line> \
-  -f side="RIGHT" \
-  -f commit_id="$SHA" \
-  -f body="$BODY"
+cat > /tmp/review-payload.json <<EOF
+{
+  "commit_id": "$SHA",
+  "event": "COMMENT",
+  "body": "<top-level summary paragraph — what was reviewed, total findings count, overall risk>",
+  "comments": [
+    {
+      "path": "<path>",
+      "line": <line>,
+      "side": "RIGHT",
+      "body": "<finding body — see badge + format below>"
+    },
+    ...
+  ]
+}
+EOF
+
+gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/reviews -X POST --input /tmp/review-payload.json
+rm /tmp/review-payload.json
 ```
 
-Comment body format:
+Use `event: "COMMENT"` — never `REQUEST_CHANGES` or `APPROVE` (the reviewer agent is advisory, not gating).
 
-```
-**<risk> — <category>** — <title>
+#### Severity badges (visual parity with gemini-code-assist)
+
+Every comment body MUST lead with the appropriate severity badge image. These render inline in GitHub's PR-review UI:
+
+| Risk | Markdown |
+|------|----------|
+| Critical | `![critical](https://www.gstatic.com/codereviewagent/high-priority.svg)` (no `critical` SVG exists upstream — reuse high-priority) |
+| High | `![high](https://www.gstatic.com/codereviewagent/high-priority.svg)` |
+| Medium | `![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)` |
+| Low | `![low](https://www.gstatic.com/codereviewagent/low-priority.svg)` |
+
+For security findings, prefer the security-specific badge (gemini does this too):
+
+| Security risk | Markdown |
+|---|---|
+| Security High / Critical | `![security-high](https://www.gstatic.com/codereviewagent/security-high-priority.svg)` |
+| Security Medium | `![security-medium](https://www.gstatic.com/codereviewagent/security-medium-priority.svg)` |
+| Security Low | `![security-low](https://www.gstatic.com/codereviewagent/security-low-priority.svg)` |
+
+Stack badges when both a security and a severity tag apply, e.g.: `![security-high](...) ![high](...)`.
+
+#### Comment body format
+
+```markdown
+<severity-badge(s)>
 
 <one-paragraph explanation: what it is, why it matters>
 
@@ -191,6 +229,20 @@ Comment body format:
 <optional details: reproduction / exploitation / impact>
 
 _Confidence: <0.x>_
+```
+
+Drop the prior `**<risk> — <category>** — <title>` header line — the badge already encodes severity, and the title duplicates the first sentence of the explanation. Keep the body tight; one paragraph plus a fix is plenty.
+
+#### Top-level review `body` format
+
+```markdown
+## Code Review (pass <N>)
+
+<one-paragraph summary: scope of this pass, what was reviewed, headline outcome>
+
+**Findings:** <count> total — <breakdown by severity, e.g. "1 high · 2 medium · 1 low">
+**Overall risk:** <Low | Medium | High | Critical>
+**Confidence cutoff:** ≥ 0.6
 ```
 
 ### Step 10 — Final summary
