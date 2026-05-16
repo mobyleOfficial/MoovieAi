@@ -33,8 +33,8 @@ The repo ships a `.mcp.json` at the root with the Linear server already declared
 {
   "mcpServers": {
     "linear": {
-      "command": "npx",
-      "args": ["linear-mcp"],
+      "command": "node",
+      "args": ["./node_modules/linear-mcp/build/index.js"],
       "env": {
         "LINEAR_ACCESS_TOKEN": "${LINEAR_ACCESS_TOKEN}"
       }
@@ -42,6 +42,8 @@ The repo ships a `.mcp.json` at the root with the Linear server already declared
   }
 }
 ```
+
+> Note: `linear-mcp` (dvcrn) ships no `bin` entry, so `npx linear-mcp` fails with `could not determine executable to run`. We invoke `node` directly against the package's `build/index.js`. `./bootstrap.sh` runs `npm install` on a fresh clone so this path resolves.
 
 No edit needed for a clone. The `${LINEAR_ACCESS_TOKEN}` reference reads from your local environment file (next step).
 
