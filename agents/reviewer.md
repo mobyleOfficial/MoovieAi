@@ -39,13 +39,36 @@ Execute these steps in order. Do not skip.
 
 If existing inline review comments exist on the PR:
 
-- `gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments --jq '...'`
+- List them: `gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments`
 - For each comment thread, read the file at the new HEAD commit (`gh pr view <N> --json headRefOid`).
-- If the issue described in the comment is no longer present, post a reply on the thread:
-  ```
-  gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments/<comment_id>/replies -X POST -f body="Resolved in <SHA>."
-  ```
+- If the issue described in the comment is no longer present:
+  1. Post a reply on the thread:
+     ```
+     gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments/<comment_id>/replies -X POST -f body="Resolved in <SHA>."
+     ```
+  2. Mark the review thread as RESOLVED via GraphQL (collapses the thread in the GitHub UI; humans don't have to click "Resolve" per thread).
+
+     First fetch the `threadId` for the comment (REST `comment_id` and GraphQL `thread_id` are different — GraphQL is the only API that resolves threads):
+     ```bash
+     THREAD_ID=$(gh api graphql -f query='
+       query($owner:String!,$repo:String!,$pr:Int!){
+         repository(owner:$owner,name:$repo){
+           pullRequest(number:$pr){
+             reviewThreads(first:100){ nodes { id comments(first:1){ nodes { databaseId }}}}
+           }
+         }
+       }' -f owner=mobyleOfficial -f repo=MoovieAi -F pr=<N> \
+       --jq ".data.repository.pullRequest.reviewThreads.nodes[] |
+              select(.comments.nodes[0].databaseId == <comment_id>) | .id")
+     ```
+
+     Then resolve:
+     ```bash
+     gh api graphql -f query='mutation($t:ID!){ resolveReviewThread(input:{threadId:$t}){ thread{ isResolved }}}' -f t="$THREAD_ID"
+     ```
 - If the issue is still present, do not reply — let it ride into the new review pass.
+
+After your own review pass posts new comments and the next round of fixes lands, repeat this Step 2 to reply + resolve those threads too. The invariant: a thread is resolved iff the underlying issue is no longer at HEAD.
 
 ### Step 3 — Run independent sub-reviewers (in parallel)
 
@@ -205,7 +228,7 @@ Print a STRICT JSON summary back to the caller:
 When invoked on a PR that already has inline comments from a previous pass:
 
 1. Treat the previous comments as the ground truth of what was raised.
-2. Resolve threads whose issues no longer exist at HEAD.
+2. Resolve threads whose issues no longer exist at HEAD — both **reply** ("Resolved in `<SHA>`") AND **mark resolved** via the GraphQL `resolveReviewThread` mutation (see Step 2 for the exact calls). Replying alone leaves the thread open in GitHub's UI and forces a human to click each one.
 3. Run the full review pipeline on the new HEAD commit only (not the cumulative diff).
 4. Dedupe against the unresolved set of prior comments before posting.
 
