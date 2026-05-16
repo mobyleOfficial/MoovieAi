@@ -5,11 +5,7 @@
       "args": ["./plugins/repo-management/dist/index.js"]
     },
     "linear": {
-      "command": "node",
-      "args": ["./node_modules/linear-mcp/build/index.js"],
-      "env": {
-        "LINEAR_ACCESS_TOKEN": "${LINEAR_ACCESS_TOKEN}"
-      }
+      "command": "./.claude/bin/linear-mcp.sh"
     }
   }
 }

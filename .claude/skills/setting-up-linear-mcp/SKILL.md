@@ -33,19 +33,23 @@ The repo ships a `.mcp.json` at the root with the Linear server already declared
 {
   "mcpServers": {
     "linear": {
-      "command": "node",
-      "args": ["./node_modules/linear-mcp/build/index.js"],
-      "env": {
-        "LINEAR_ACCESS_TOKEN": "${LINEAR_ACCESS_TOKEN}"
-      }
+      "command": "./.claude/bin/linear-mcp.sh"
     }
   }
 }
 ```
 
-> Note: `linear-mcp` (dvcrn) ships no `bin` entry, so `npx linear-mcp` fails with `could not determine executable to run`. We invoke `node` directly against the package's `build/index.js`. `./bootstrap.sh` runs `npm install` on a fresh clone so this path resolves.
+The Linear server is launched through a small wrapper script at [`.claude/bin/linear-mcp.sh`](../../bin/linear-mcp.sh) that:
 
-No edit needed for a clone. The `${LINEAR_ACCESS_TOKEN}` reference reads from your local environment file (next step).
+1. Reads `LINEAR_ACCESS_TOKEN` from the gitignored `.claude/settings.local.json` via `jq`.
+2. Exports it into the child process environment.
+3. Execs `node ./node_modules/linear-mcp/build/index.js`.
+
+This avoids relying on `${VAR}` expansion inside `.mcp.json`'s `env` block, which Claude Code does not consistently honor — the child process would otherwise receive the literal string `"${LINEAR_ACCESS_TOKEN}"` and the server would silently authenticate with garbage, producing "Authentication required" on every call.
+
+Requirements: `jq` (installed by `bootstrap.sh`'s `require jq` check) and the `linear-mcp` package (installed by `npm install` / `bootstrap.sh`). `linear-mcp` (dvcrn) ships no `bin` entry, which is why we exec `node` against `build/index.js` rather than `npx linear-mcp`.
+
+No edit to `.mcp.json` needed on a clone. Token lives only in `.claude/settings.local.json` (next step).
 
 **3. Set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json`**
 
@@ -94,7 +98,9 @@ This repo defaults to the `MOO` project in the `mobyle` workspace. The `linear-m
 | Token committed to git | Revoke at `https://linear.app/<workspace>/settings/api`, regenerate, store in `.claude/settings.local.json` only |
 | Wrong package name | The package is `linear-mcp` (dvcrn), not `@linear/mcp`. Latter does not exist on npm |
 | Wrong env var name | `linear-mcp` reads `LINEAR_ACCESS_TOKEN`, not `LINEAR_API_TOKEN`. Older docs may say the wrong name |
-| Forgot `${LINEAR_ACCESS_TOKEN}` reference | Token will not interpolate. Use `"${LINEAR_ACCESS_TOKEN}"` in `.mcp.json`, real value in `.claude/settings.local.json` |
+| Wrapper script not executable | `chmod +x .claude/bin/linear-mcp.sh` (or re-run `./bootstrap.sh`). Manifests as Claude Code reporting the MCP server failed to start |
+| `jq` missing | The wrapper uses `jq` to read the token from `.claude/settings.local.json`. Install via your package manager (`brew install jq`, `apt install jq`) |
+| Token missing from settings | Wrapper exits with `linear-mcp: .env.LINEAR_ACCESS_TOKEN missing from .claude/settings.local.json`. Add it under the `env` block |
 | Settings not reloading | Restart Claude Code completely (not just a new tab) |
 
 ## Security Notes
