@@ -16,18 +16,24 @@ type ToolHandler = (args: Record<string, string>) => Promise<string>;
 
 // Run a command with argv-array form (no shell). Avoids injection from
 // any user-supplied argument that ends up in the command line.
-function run(
-  cmd: string,
-  argv: string[],
-  opts: { capture?: boolean } = {}
-): string {
-  const stdio = opts.capture ? "pipe" : ["pipe", "pipe", "pipe"];
-  const result = execFileSync(cmd, argv, {
+function run(cmd: string, argv: string[]): string {
+  return execFileSync(cmd, argv, {
     cwd: ROOT_DIR,
     encoding: "utf-8",
-    stdio: stdio as never,
+    stdio: "pipe",
   });
-  return typeof result === "string" ? result : "";
+}
+
+// Switch to the project's base development branch (develop, with `dev` as a
+// historical fallback) and pull. Used by both feature- and release-branch
+// creation so changes to the strategy land in one place.
+function checkoutDevBaseAndPull(): void {
+  try {
+    run("git", ["checkout", "develop"]);
+  } catch {
+    run("git", ["checkout", "dev"]);
+  }
+  run("git", ["pull", "--ff-only"]);
 }
 
 // Submodule name allowlist — guards branch-name and path arguments that
@@ -66,17 +72,19 @@ const handlers: Record<string, ToolHandler> = {
 
     run("git", ["submodule", "update", "--remote", "--", name]);
 
-    const commit = run("git", ["-C", name, "rev-parse", "--short", "HEAD"], {
-      capture: true,
-    }).trim();
+    const commit = run("git", [
+      "-C",
+      name,
+      "rev-parse",
+      "--short",
+      "HEAD",
+    ]).trim();
 
     run("git", ["add", "--", name]);
 
     // Status-porcelain restricted to the submodule path; reliably detects
     // whether THIS submodule reference changed.
-    const status = run("git", ["status", "--porcelain", "--", name], {
-      capture: true,
-    });
+    const status = run("git", ["status", "--porcelain", "--", name]);
 
     if (!status.trim()) {
       return `✓ Submodule '${name}' already up to date (${commit})`;
@@ -103,12 +111,7 @@ const handlers: Record<string, ToolHandler> = {
     // Checkout the base branch FIRST so any submodule-pointer commits
     // produced by sync-submodule land on `develop`, not on whatever
     // branch happened to be current when the tool was invoked.
-    try {
-      run("git", ["checkout", "develop"]);
-    } catch {
-      run("git", ["checkout", "dev"]);
-    }
-    run("git", ["pull", "--ff-only"]);
+    checkoutDevBaseAndPull();
 
     await handlers["sync-submodule"]({ name: "moovie" });
     await handlers["sync-submodule"]({ name: "backend" });
@@ -123,12 +126,7 @@ const handlers: Record<string, ToolHandler> = {
     assertGitRef(version, "version");
     const branchName = `release/${version}`;
 
-    try {
-      run("git", ["checkout", "develop"]);
-    } catch {
-      run("git", ["checkout", "dev"]);
-    }
-    run("git", ["pull", "--ff-only"]);
+    checkoutDevBaseAndPull();
 
     await handlers["sync-submodule"]({ name: "moovie" });
     await handlers["sync-submodule"]({ name: "backend" });
@@ -141,9 +139,7 @@ const handlers: Record<string, ToolHandler> = {
     const { title, description } = args;
     if (!title) throw new Error("title parameter required");
 
-    const branch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
-      capture: true,
-    }).trim();
+    const branch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
     assertGitRef(branch, "current branch");
 
     let baseRef: "main" | "develop" = "main";
@@ -166,14 +162,10 @@ const handlers: Record<string, ToolHandler> = {
     const lines = (s: string) => s.trim().split("\n");
 
     const moovieLines = lines(
-      run("git", ["-C", "moovie", "rev-parse", "HEAD", "origin/main"], {
-        capture: true,
-      })
+      run("git", ["-C", "moovie", "rev-parse", "HEAD", "origin/main"])
     );
     const backendLines = lines(
-      run("git", ["-C", "backend", "rev-parse", "HEAD", "origin/main"], {
-        capture: true,
-      })
+      run("git", ["-C", "backend", "rev-parse", "HEAD", "origin/main"])
     );
 
     const moovieStale = moovieLines[0] !== moovieLines[1];
