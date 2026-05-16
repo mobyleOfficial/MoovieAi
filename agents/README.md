@@ -9,7 +9,7 @@ Custom Claude agents for specialized tasks in the MoovieAi ecosystem. These form
 - **pm-spec** — Product manager that writes feature specifications for the ecosystem
 - **architect-review** — Technical architect that reviews specs for feasibility and ecosystem alignment
 - **implementer-tester** — Flutter/Dart implementer that builds features in the moovie submodule with full test coverage
-- **validator** — Strict read-only post-implementation reviewer. Catches issues before merge using a 10-section checklist (correctness, architecture, UI patterns, code quality, testing, localization, accessibility, security, performance).
+- **validator** — Strict read-only post-implementation reviewer. Catches issues before merge using a 10-section checklist (correctness, architecture, UI patterns, code quality, testing, localization, accessibility, security, performance). Writes a comprehensive local report to `research/reviews/<feature>-code-review.md`; if an open PR exists for the current branch, also delegates to the `reviewer` agent to post inline PR comments.
 
 ### PR Review
 

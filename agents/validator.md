@@ -1,7 +1,7 @@
 ---
 name: validator
-description: Validates code quality and correctness across moovie and backend submodules (read-only).
-tools: Read, Glob, Grep, Bash
+description: Validates code quality and correctness across moovie and backend submodules (read-only). After producing the local validation report, also surfaces findings as inline GitHub PR comments when an open PR is detected for the current branch.
+tools: Read, Glob, Grep, Bash, Task
 disallowedTools: Write, Edit
 model: sonnet
 ---
@@ -143,3 +143,43 @@ Write validation report with:
 - Explain the "why" behind each issue
 - Prioritize critical issues that block merge
 - Remember: implementer must address issues, not you
+
+## PR Inline-Comment Mode
+
+After writing the validation report (above), check whether the current branch has an open GitHub pull request. If yes, also surface the findings as inline PR comments by dispatching the `reviewer` subagent.
+
+### Detection
+
+```bash
+branch=$(git rev-parse --abbrev-ref HEAD)
+pr_number=$(gh pr list --head "$branch" --json number --jq '.[0].number')
+```
+
+- If `pr_number` is empty: skip PR mode entirely. The local report is the only output.
+- If `pr_number` is set: proceed.
+
+### Dispatch
+
+Invoke the `reviewer` agent via the `Task` tool. It already implements the full pipeline (parallel sub-reviewers, validation, deduplication, risk-ranking, inline posting, re-review-resolution semantics) and is the single source of truth for inline-comment posting.
+
+```
+Task({
+  subagent_type: "reviewer",
+  description: "Inline-comment PR #<N>",
+  prompt: "Review PR #<N> on mobyleOfficial/MoovieAi following the workflow in agents/reviewer.md. Run the three sub-reviewers in parallel, validate findings (≥0.6 confidence cutoff), deduplicate against any existing comments, and post net-new findings as inline review comments. Re-review aware: mark resolved threads. Return the STRICT JSON summary."
+})
+```
+
+### Why delegate
+
+- `reviewer` already owns the `gh api ... /comments` posting logic, including resolution-reply behavior for previously-flagged threads.
+- Centralizes inline-posting in one place: bug fixes and posting-format changes only need to land in `reviewer.md`.
+- Keeps `validator` focused on the read-only local-report responsibility.
+- Avoids duplicating the parallel-sub-reviewer / validation / deduplication pipeline in two places.
+
+### What the user sees
+
+- The validation report at `research/reviews/<feature>-code-review.md` — comprehensive offline reference.
+- Inline comments on the PR — actionable, line-anchored, automatically tracked by GitHub's review-thread UI.
+
+Both stay in sync because the local report and the inline comments derive from the same sub-reviewer outputs (the `reviewer` agent runs them) — though the report covers the full 10-section checklist while inline comments are filtered to the higher-confidence subset (≥0.6) per the reviewer workflow.
