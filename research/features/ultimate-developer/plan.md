@@ -41,6 +41,9 @@
 
 ## Conventions Used Throughout
 
+- **Working directory:** All commands assume PWD = meta-repo root (`MoovieAi/`). Set once at start: `cd <path-to-MoovieAi>`. The plan uses relative paths thereafter (e.g., `rules/backend-architecture.md`, not absolute `/Users/.../MoovieAi/rules/...`). Submodule commands explicitly note when to `cd <submodule>`.
+- **Repo variable:** Set `REPO=mobyleOfficial/MoovieAi` once at top of any shell session that uses `gh api` raw calls (calls without `gh pr`/`gh repo` shortcuts). Use `gh api repos/${REPO}/...` thereafter so this plan is reusable in forks.
+- **Temp files:** Use `mktemp` for scratch files (`SMOKE=$(mktemp /tmp/ud-smoke.XXXXXX.sh)`), never hardcoded `/tmp/test-*.sh` (multi-user collision risk). Clean up with `rm "$SMOKE"` after the test.
 - **Branch:** Stay on the user's current working branch unless explicitly told to cut a new one. The execution model is: this is a feature branch in the meta-repo; we are implementing the feature in-place.
 - **Commits:** Conventional Commits (`feat:`, `doc:`, `chore:`, `fix:`, `test:`). No co-author trailers (NO_COAUTHORS rule).
 - **File-staging:** `git add` named files, never `-A` or `.`.
@@ -59,10 +62,10 @@
 Run:
 ```bash
 pwd
-git -C /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi status --short
-git -C /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi branch --show-current
+git status --short
+git branch --show-current
 ```
-Expected: working dir = `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi`, branch reported, status may show the existing `research/features/` from spec.
+Expected: working dir = meta-repo root (`MoovieAi/`), branch reported, status may show the existing `research/features/` from spec.
 
 - [ ] **Step 2: Confirm required tools available**
 
@@ -76,7 +79,7 @@ Expected: all three present; `gh auth status` shows authenticated to `mobyleOffi
 
 Run:
 ```bash
-git -C /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi submodule status
+git submodule status
 ```
 Expected: lines for `moovie` and `backend` (no leading `-` indicating uninitialized). If uninitialized → run `git submodule update --init --recursive`.
 
@@ -94,8 +97,8 @@ Expected: lines for `moovie` and `backend` (no leading `-` indicating uninitiali
 
 Run:
 ```bash
-find /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/backend/src -type f -name '*.kt' | head -50
-ls /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/backend
+find backend/src -type f -name '*.kt' | head -50
+ls backend
 ```
 Capture: top-level layout, package structure under `src/main/kotlin/`, presence of Application.kt, routing files, Koin modules.
 
@@ -103,7 +106,7 @@ Capture: top-level layout, package structure under `src/main/kotlin/`, presence 
 
 ```bash
 # Locate entry
-grep -rn "fun main" /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/backend/src/main/kotlin/ | head -5
+grep -rn "fun main" backend/src/main/kotlin/ | head -5
 # Inspect Application.kt and the first routing file we find
 ```
 Use the `Read` tool on each file located (not `cat`). Note: package conventions, plugin install pattern (`install(ContentNegotiation)`), serialization choice, DI module shape, error handling.
@@ -117,22 +120,27 @@ Read `backend/build.gradle.kts`. Note Ktor version, Kotlin version, Koin version
 ### Task 1.2: Write `rules/backend-architecture.md`
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/rules/backend-architecture.md`
+- Create: `rules/backend-architecture.md`
 
 - [ ] **Step 1: Write the smoke test for backend-architecture rule**
 
-Create `/tmp/test-backend-arch-rule.sh`:
+Create the smoke test in a `mktemp` file (avoids `/tmp/*` collisions when multiple users run the plan on a shared host):
 ```bash
+SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+chmod +x "$SMOKE"
+cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-F=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/rules/backend-architecture.md
+F=rules/backend-architecture.md
 [ -f "$F" ] || { echo "FAIL: file missing"; exit 1; }
 for section in "## Module Layout" "## Routing" "## Dependency Injection" "## Error Handling" "## TMDB Integration"; do
   grep -qF "$section" "$F" || { echo "FAIL: missing section: $section"; exit 1; }
 done
 echo "PASS"
+EOF
+"$SMOKE"
 ```
-Run `chmod +x /tmp/test-backend-arch-rule.sh && /tmp/test-backend-arch-rule.sh`. Expected: FAIL (file missing).
+Expected: FAIL (file missing).
 
 - [ ] **Step 2: Write the rule file**
 
@@ -207,36 +215,42 @@ Use the `Write` tool to create the file. Adjust `<root-package>` placeholder to 
 - [ ] **Step 3: Re-run the smoke test**
 
 ```bash
-/tmp/test-backend-arch-rule.sh
+"$SMOKE"
 ```
 Expected: `PASS`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit + cleanup**
 
 ```bash
-git -C /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi add rules/backend-architecture.md
-git -C /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi commit -m "doc: add backend-architecture rule for Ktor/Koin/TMDB patterns"
+git add rules/backend-architecture.md
+git commit -m "doc: add backend-architecture rule for Ktor/Koin/TMDB patterns"
+rm "$SMOKE"
 ```
 
 ### Task 1.3: Write `rules/backend-testing.md`
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/rules/backend-testing.md`
+- Create: `rules/backend-testing.md`
 
 - [ ] **Step 1: Smoke test**
 
-Create `/tmp/test-backend-testing-rule.sh`:
+Create the smoke test (mktemp pattern, per Conventions):
 ```bash
+SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+chmod +x "$SMOKE"
+cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-F=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/rules/backend-testing.md
+F=rules/backend-testing.md
 [ -f "$F" ] || { echo "FAIL: missing"; exit 1; }
 for s in "## Test Structure" "## Unit Tests" "## Route Tests" "## TMDB Mocking" "## Coverage Expectations"; do
   grep -qF "$s" "$F" || { echo "FAIL: $s"; exit 1; }
 done
 echo PASS
+EOF
+"$SMOKE"
 ```
-Run, expect FAIL.
+Expected: FAIL.
 
 - [ ] **Step 2: Write the rule**
 
@@ -293,19 +307,25 @@ No coverage percentage gate — gate is on the per-class expectations above.
 
 Create with `Write`.
 
-- [ ] **Step 3: Smoke test PASS**
+- [ ] **Step 3: Re-run smoke test**
 
-- [ ] **Step 4: Commit**
+```bash
+"$SMOKE"
+```
+Expected: PASS.
+
+- [ ] **Step 4: Commit + cleanup**
 
 ```bash
 git add rules/backend-testing.md
 git commit -m "doc: add backend-testing rule for Ktor/JUnit/MockK patterns"
+rm "$SMOKE"
 ```
 
 ### Task 1.4: Register backend rules in `rules/README.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/rules/README.md`
+- Modify: `rules/README.md`
 
 - [ ] **Step 1: Read current `rules/README.md` to locate the enforcement-map table**
 
@@ -334,7 +354,7 @@ git commit -m "doc: register backend-architecture + backend-testing rules"
 ### Task 2.1: Shared `mode` parsing helper for smoke tests
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/.claude/hooks/validate-audit-only.sh`
+- Create: `.claude/hooks/validate-audit-only.sh`
 
 - [ ] **Step 1: Write helper**
 
@@ -345,7 +365,11 @@ git commit -m "doc: register backend-architecture + backend-testing rules"
 set -euo pipefail
 F="${1:?agent file path required}"
 [ -f "$F" ] || { echo "FAIL: $F missing"; exit 1; }
-grep -qF 'mode: "audit-only"' "$F" || { echo "FAIL: $F missing audit-only contract"; exit 1; }
+# Lenient detector — matches mode: "audit-only" / mode=audit-only / MODE : 'audit-only' / etc.
+# Case-insensitive; tolerates whitespace and either quote style. Same regex the agents use at runtime,
+# so the smoke test catches drift (e.g., if someone writes mode='audit_only' with underscore).
+grep -qiE 'mode[[:space:]]*[:=][[:space:]]*["'"'"']*audit-only["'"'"']*' "$F" \
+  || { echo "FAIL: $F missing audit-only contract (regex: mode[:=]\"?audit-only\"?)"; exit 1; }
 grep -qF 'STRICT JSON' "$F" || { echo "FAIL: $F missing JSON output contract"; exit 1; }
 echo "PASS: $F"
 ```
@@ -361,7 +385,7 @@ git commit -m "chore: add smoke-test helper for audit-only flag contract"
 ### Task 2.2: Add audit-only mode to `agents/reviewer.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/reviewer.md`
+- Modify: `agents/reviewer.md`
 
 - [ ] **Step 1: Smoke test fails initially**
 
@@ -377,7 +401,13 @@ Append to `agents/reviewer.md`, between the existing "Workflow" section and "Str
 ```markdown
 ## Audit-Only Mode
 
-When the invoking prompt contains `mode: "audit-only"` (case-insensitive, anywhere in the prompt body):
+Detection (use this exact regex; matches canonical `mode: "audit-only"` plus lenient variants like `mode=audit-only`, `MODE: 'audit-only'`, etc.):
+
+```
+echo "$PROMPT" | grep -qiE 'mode[[:space:]]*[:=][[:space:]]*["'\'']*audit-only["'\'']*'
+```
+
+When the regex matches:
 
 1. **SKIP Step 2** entirely — do not reply to or resolve any prior threads. Leave thread state untouched.
 2. **SKIP Step 9** entirely — do not POST a review. Return the STRICT JSON summary from Step 10 to stdout as the sole output.
@@ -407,7 +437,7 @@ git commit -m "feat(reviewer): add audit-only mode for orchestrator callers"
 ### Task 2.3: Add audit-only mode to `agents/validator.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/validator.md`
+- Modify: `agents/validator.md`
 
 - [ ] **Step 1: Smoke test fails**
 
@@ -467,7 +497,7 @@ git commit -m "feat(validator): add audit-only mode with STRICT JSON output sche
 ### Task 2.4: Add audit-only mode to `agents/architect-review.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/architect-review.md`
+- Modify: `agents/architect-review.md`
 
 - [ ] **Step 1: Smoke test fails**
 
@@ -525,20 +555,25 @@ git commit -m "feat(architect-review): add audit-only mode with STRICT JSON + pe
 ### Task 3.1: `agents/pm-spec.md` accepts `slug=` and writes to per-feature folder
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/pm-spec.md`
+- Modify: `agents/pm-spec.md`
 
 - [ ] **Step 1: Smoke test**
 
-Create `/tmp/test-pm-spec-slug.sh`:
+Create the smoke test (mktemp pattern):
 ```bash
+SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+chmod +x "$SMOKE"
+cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-F=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/pm-spec.md
+F=agents/pm-spec.md
 grep -qF 'slug=' "$F" || { echo FAIL: missing slug arg; exit 1; }
 grep -qF 'research/features/' "$F" || { echo FAIL: missing per-feature path; exit 1; }
 echo PASS
+EOF
+"$SMOKE"
 ```
-Run, expect FAIL.
+Expected: FAIL.
 
 - [ ] **Step 2: Edit `agents/pm-spec.md`**
 
@@ -561,17 +596,18 @@ Use descriptive filenames with dates if helpful when in legacy mode (e.g., `rese
 
 - [ ] **Step 3: Smoke test PASS**
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit + cleanup**
 
 ```bash
 git add agents/pm-spec.md
 git commit -m "feat(pm-spec): accept slug= arg, default write to research/features/<slug>/spec.md"
+rm "$SMOKE"
 ```
 
 ### Task 3.2: `agents/implementer-tester.md` accepts `slug=` and reads from per-feature folder
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/implementer-tester.md`
+- Modify: `agents/implementer-tester.md`
 
 - [ ] **Step 1: Smoke test**
 
@@ -615,11 +651,14 @@ git commit -m "feat(implementer-tester): accept slug= arg, read from research/fe
 
 - [ ] **Step 1: Write smoke test**
 
-Create `/tmp/test-researcher.sh`:
+Create the smoke test (mktemp pattern):
 ```bash
+SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+chmod +x "$SMOKE"
+cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-F=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/researcher.md
+F=agents/researcher.md
 [ -f "$F" ] || { echo FAIL: missing; exit 1; }
 grep -qF 'name: researcher' "$F" || { echo FAIL: name; exit 1; }
 grep -qF 'WebSearch' "$F" || { echo FAIL: WebSearch tool; exit 1; }
@@ -628,13 +667,15 @@ for s in "## Inputs" "## Output Template" "## Searches Performed" "type=resource
   grep -qF "$s" "$F" || { echo "FAIL: $s"; exit 1; }
 done
 echo PASS
+EOF
+"$SMOKE"
 ```
-Run, expect FAIL.
+Expected: FAIL.
 
 ### Task 4.2: Write `agents/researcher.md`
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/researcher.md`
+- Create: `agents/researcher.md`
 
 - [ ] **Step 1: Create the file**
 
@@ -653,7 +694,7 @@ You research ONE topic and produce ONE markdown file. The caller (typically `ult
 ## Inputs (from prompt body)
 
 Required:
-- `path=<absolute output path>` — where to write the research file
+- `path=<output path>` — where to write the research file. The caller (typically `ultimate-developer`) passes a path relative to the meta-repo root (e.g., `research/features/<slug>/research/<topic-slug>.md`); the `Write` tool resolves it against the agent's working directory. Do NOT hardcode user-specific paths.
 - `topic=<what to research>` — the question or resource name
 - `type=<resource-docs|prior-art|mixed>` — which template to use
 - `context=<1-3 sentences>` — links the topic to the feature being built
@@ -743,15 +784,16 @@ To keep two invocations on the same topic comparable:
 - [ ] **Step 2: Run smoke test**
 
 ```bash
-/tmp/test-researcher.sh
+"$SMOKE"
 ```
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit + cleanup**
 
 ```bash
 git add agents/researcher.md
 git commit -m "feat(agents): add researcher sub-agent for per-topic plan research"
+rm "$SMOKE"
 ```
 
 ---
@@ -761,22 +803,27 @@ git commit -m "feat(agents): add researcher sub-agent for per-topic plan researc
 ### Task 5.1: Write `agents/backend-implementer.md`
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/backend-implementer.md`
+- Create: `agents/backend-implementer.md`
 
 - [ ] **Step 1: Smoke test**
 
-Create `/tmp/test-backend-impl.sh`:
+Create the smoke test (mktemp pattern):
 ```bash
+SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+chmod +x "$SMOKE"
+cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-F=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/backend-implementer.md
+F=agents/backend-implementer.md
 [ -f "$F" ] || { echo FAIL: missing; exit 1; }
 for s in "name: backend-implementer" "Ktor" "Koin" "./gradlew" "rules/backend-architecture.md" "rules/backend-testing.md" "slug="; do
   grep -qF "$s" "$F" || { echo "FAIL: $s"; exit 1; }
 done
 echo PASS
+EOF
+"$SMOKE"
 ```
-Run, expect FAIL.
+Expected: FAIL.
 
 - [ ] **Step 2: Write the file**
 
@@ -861,11 +908,12 @@ After tests pass:
 
 - [ ] **Step 3: Smoke test PASS**
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit + cleanup**
 
 ```bash
 git add agents/backend-implementer.md
 git commit -m "feat(agents): add backend-implementer for Kotlin/Ktor features"
+rm "$SMOKE"
 ```
 
 ---
@@ -879,15 +927,18 @@ The biggest piece. Broken into eleven sub-tasks (6.1–6.11). Each produces one 
 ### Task 6.1: Frontmatter + scaffolding
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/ultimate-developer.md`
+- Create: `agents/ultimate-developer.md`
 
 - [ ] **Step 1: Smoke test (will fail throughout this phase, only run at end)**
 
-Create `/tmp/test-ud.sh`:
+Create the smoke test (mktemp pattern). Persists for the rest of Phase 6 sub-tasks; cleanup happens in Task 6.11:
 ```bash
+SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+chmod +x "$SMOKE"
+cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-F=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/ultimate-developer.md
+F=agents/ultimate-developer.md
 [ -f "$F" ] || { echo FAIL: missing; exit 1; }
 for s in \
   "name: ultimate-developer" \
@@ -907,7 +958,9 @@ for s in \
   grep -qF "$s" "$F" || { echo "FAIL: $s"; exit 1; }
 done
 echo PASS
+EOF
 ```
+(Do not run yet — file doesn't exist; sub-tasks 6.2–6.10 build it.)
 
 - [ ] **Step 2: Write the file with frontmatter + section scaffolding**
 
@@ -915,7 +968,7 @@ echo PASS
 ---
 name: ultimate-developer
 description: Autonomous end-to-end feature builder. Brainstorms with user, writes spec, plans (with researcher sub-agent), implements, drives review-and-iterate loops on each phase's PR, merges autonomously. Reuses pm-spec / architect-review / implementer-tester / validator / reviewer in audit-only mode.
-tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebSearch, WebFetch, Skill
+tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebSearch, WebFetch, Skill, AskUserQuestion
 model: opus
 ---
 
@@ -1054,7 +1107,7 @@ git checkout -b feature/<slug>-spec
 git add research/features/<slug>/spec.md
 git commit -m "doc(<slug>): add spec"
 git push -u origin feature/<slug>-spec
-PR_URL=$(gh pr create --base <target> --head feature/<slug>-spec \
+gh pr create --base <target> --head feature/<slug>-spec \
   --title "doc(<slug>): spec" \
   --body "$(cat <<EOF
 ## Spec PR for <slug>
@@ -1064,8 +1117,9 @@ PR_URL=$(gh pr create --base <target> --head feature/<slug>-spec \
 Generated by ultimate-developer. Auto-merges when review loop converges.
 
 EOF
-)")
-SPEC_PR=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+)" > /dev/null
+# gh pr view resolves the PR for the current branch — robust extraction.
+SPEC_PR=$(gh pr view --json number --jq .number)
 ```
 
 ### Step 3 — Run the review loop
@@ -1081,9 +1135,9 @@ See **Review Loop Driver** for the algorithm. After convergence:
 ### Step 4 — Merge
 
 ```bash
-gh pr merge $SPEC_PR --squash --delete-branch
+safe_merge "$SPEC_PR"   # see Safety Circuits > Pre-merge gate; forbidden to call gh pr merge directly
 sleep 30  # external bots
-gh pr view $SPEC_PR --json state --jq .state  # expect "MERGED"
+gh pr view "$SPEC_PR" --json state --jq .state  # expect "MERGED"
 ```
 
 Advance to Plan phase.
@@ -1113,7 +1167,7 @@ Each dispatch:
 Task({
   subagent_type: "researcher",
   description: "Research <topic>",
-  prompt: "path=/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/research/features/<slug>/research/<topic-slug>.md\ntopic=<topic full text>\ntype=<resource-docs|prior-art|mixed>\ncontext=<1-3 sentences linking topic to feature>"
+  prompt: "path=research/features/<slug>/research/<topic-slug>.md\ntopic=<topic full text>\ntype=<resource-docs|prior-art|mixed>\ncontext=<1-3 sentences linking topic to feature>"
 })
 ```
 
@@ -1141,10 +1195,10 @@ git checkout -b feature/<slug>-plan
 git add research/features/<slug>/plan.md research/features/<slug>/research/
 git commit -m "doc(<slug>): add plan + research"
 git push -u origin feature/<slug>-plan
-PLAN_PR=$(gh pr create --base <target> --head feature/<slug>-plan \
+gh pr create --base <target> --head feature/<slug>-plan \
   --title "doc(<slug>): plan + research" \
-  --body "<!-- ultimate-developer:phase=plan repo=meta slug=<slug> -->" \
-  | grep -oE '[0-9]+$')
+  --body "<!-- ultimate-developer:phase=plan repo=meta slug=<slug> -->" > /dev/null
+PLAN_PR=$(gh pr view --json number --jq .number)
 ```
 
 ### Step 5 — Review loop
@@ -1163,7 +1217,7 @@ If a reviewer finding is "missing research on X" and the fix-decision is "fix":
 
 ### Step 6 — Merge
 
-Same `gh pr merge` pattern as spec phase. Advance to Implementation.
+Same `safe_merge "$PLAN_PR"` pattern as spec phase (always via the Pre-merge gate; never direct `gh pr merge`). Advance to Implementation.
 ```
 
 ### Task 6.5: Implementation phase content
@@ -1187,10 +1241,14 @@ Repeat for each repo in scope (backend first if `both`):
 
 1. **Setup**:
    ```bash
-   cd /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/<submodule>
-   git checkout <target>
+   REPO_ROOT="$(pwd)"  # capture meta-repo root for the cd-back after merge (used by submodule-bump PR step)
+   REPO_DIR="<submodule>"  # use this var in all git commands below to make commit_and_push unambiguous
+   cd "$REPO_DIR"
+   git fetch origin
+   # Submodules typically start in detached HEAD. Use -B to create-or-reset a local tracking branch.
+   git checkout -B "<target>" "origin/<target>"
    git pull --ff-only
-   git checkout -b feature/<slug>
+   git checkout -b "feature/<slug>"
    ```
 
 2. **Dispatch implementer**:
@@ -1218,10 +1276,10 @@ Repeat for each repo in scope (backend first if `both`):
 4. **Push + open PR**:
    ```bash
    git push -u origin feature/<slug>
-   IMPL_PR=$(gh pr create --base <target> --head feature/<slug> \
+   gh pr create --base <target> --head feature/<slug> \
      --title "feat(<slug>): implementation" \
-     --body "<!-- ultimate-developer:phase=impl repo=<moovie|backend> slug=<slug> -->" \
-     | grep -oE '[0-9]+$')
+     --body "<!-- ultimate-developer:phase=impl repo=<moovie|backend> slug=<slug> -->" > /dev/null
+   IMPL_PR=$(gh pr view --json number --jq .number)
    ```
 
 5. **Review loop**:
@@ -1231,14 +1289,14 @@ Repeat for each repo in scope (backend first if `both`):
    - `max_iter=$UD_MAX_ITER_IMPL`
    - `reviewers=reviewer,validator` (both audit-only)
 
-6. **Merge**: same `gh pr merge --squash --delete-branch` pattern
+6. **Merge**: `safe_merge "$IMPL_PR"` (Pre-merge gate; never direct `gh pr merge`)
 
 ### Final meta-repo submodule-bump PR
 
 After all impl PRs merged:
 
 ```bash
-cd /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi
+cd "$REPO_ROOT"  # back to meta-repo root (REPO_ROOT was saved before cd into submodule above)
 git checkout <target>
 git pull --ff-only
 git checkout -b chore/<slug>-bump-refs
@@ -1247,14 +1305,48 @@ git add moovie  # if in scope
 git add backend # if in scope
 git commit -m "chore(<slug>): bump submodule refs"
 git push -u origin chore/<slug>-bump-refs
-BUMP_PR=$(gh pr create --base <target> --head chore/<slug>-bump-refs \
+gh pr create --base <target> --head chore/<slug>-bump-refs \
   --title "chore(<slug>): bump submodule refs" \
-  --body "<!-- ultimate-developer:phase=bump repo=meta slug=<slug> -->" \
-  | grep -oE '[0-9]+$')
-gh pr merge $BUMP_PR --squash --delete-branch
+  --body "<!-- ultimate-developer:phase=bump repo=meta slug=<slug> -->" > /dev/null
+BUMP_PR=$(gh pr view --json number --jq .number)
+safe_merge "$BUMP_PR"   # Pre-merge gate
 ```
 
 No review loop on the bump PR — pure ref change.
+
+### Recovery: bump PR fails after impl PRs merged
+
+The cross-repo flow has a non-transactional gap: impl PRs in submodules merge BEFORE the meta-repo bump PR exists. If the bump PR fails to open, fails review, or `safe_merge` refuses, the submodules carry merged code while the meta-repo's submodule refs are stale (consumers building from `<target>` get the old code). This is recoverable but requires explicit handling — do NOT attempt to revert the submodule merges.
+
+When the bump PR cannot land:
+
+1. **Do NOT revert the submodule merges.** The merged code is now part of `<target>` in the submodule; reverting it requires its own review cycle and risks conflicts with other in-flight work.
+2. **Escalate** with the following template payload (in addition to the standard escalation):
+   ```markdown
+   ## ultimate-developer escalation — stale submodule refs
+
+   Slug: <slug>
+   Target: <target>
+   State:
+   - moovie submodule ref at <target>: <SHA-of-merged-impl-PR>  ← already merged
+   - backend submodule ref at <target>: <SHA-of-merged-impl-PR> ← already merged
+   - meta-repo submodule ref at <target>: <SHA-currently-pinned> ← STALE
+
+   Failed bump PR: #<BUMP_PR> (see comments for reason)
+
+   Manual recovery:
+   1. Inspect the bump PR's review comments / CI logs
+   2. Either: fix and re-attempt bump (a fresh `chore/<slug>-bump-refs-v2` branch is safe to cut), OR
+   3. If the merged submodule code is itself the problem: open follow-up revert PRs in the submodules first, then a fresh bump
+   ```
+3. **Tag the meta-repo branch** the user is on with a marker file `.claude/UD_STALE_REFS_<slug>` so subsequent runs can detect the divergence:
+   ```bash
+   echo "stale refs after bump PR #${BUMP_PR} failed at $(date -Iseconds)" > ".claude/UD_STALE_REFS_${slug}"
+   git add ".claude/UD_STALE_REFS_${slug}" && git commit -m "chore(${slug}): mark stale submodule refs after bump-PR failure" || true
+   ```
+   The marker exits cleanly and the user can clean up after recovery.
+
+Future hardening (not in v1): a "two-phase commit" where impl PRs land into a staging branch of the submodule first, the meta-repo bump PR references that staging branch, and the submodule's `<target>` merge happens only after the meta-repo PR merges. Significant complexity — defer until we've seen a real bump-PR failure.
 ```
 
 ### Task 6.6: Review loop driver content
@@ -1335,8 +1427,30 @@ Deterministic decision tree:
 
 Special cases:
 - If a `fix` would require an architecture change beyond plan scope → `defer`
-- If `fix` attempts (3 in a row) fail to address the finding (reviewer re-raises essentially same issue) → escalate
+- If `fix` attempts (3 in a row) fail to address the finding (reviewer re-raises essentially same issue) → escalate. Track per-thread attempt count in a bash assoc array: `declare -A FIX_ATTEMPTS; FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1))`. When the count for a thread hits 3 → escalate.
 - If multiple findings target the same line cluster → batch into one commit with one combined reply per thread
+
+### Primitive reference (pseudocode → real tool calls)
+
+The loop's pseudocode names map to these concrete operations. The implementer must implement each primitive as named here — no improvisation:
+
+| Pseudocode primitive | Real implementation |
+|---|---|
+| `gh_root_comments(pr)` | `gh api --paginate "repos/${REPO}/pulls/$pr/comments" --jq '[.[] \| select(.in_reply_to_id == null) \| {id, node_id, path, line, body, user: .user.login}]'` (returns JSON array) |
+| `gh_unresolved_threads(pr)` | Paginated GraphQL query (see GH Thread Authoring `find_thread` pattern) filtered to `nodes[] \| select(.isResolved == false)` — returns array of `{id, comments[]}` |
+| `dispatch_reviewers_audit_only(pr, phase, reviewers[])` | A single message containing one `Task(subagent_type=<r>, prompt="mode: \"audit-only\"\nslug=$slug\npr=$pr\niter=$iter\n...")` per reviewer in `reviewers`. Parse each return via the JSON extractor (see Sub-Agent Dispatch > Parsing). Merge `.comments // .findings` arrays. |
+| `dedupe(findings, prior_comments)` | For each finding, compute `hash = sha1(path + ":" + line + ":" + first-80-chars-of-body)`. For each `prior_comments[]`, compute the same hash. Drop findings whose hash matches an unresolved prior comment. |
+| `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. |
+| `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. |
+| `apply_fix(thread)` | Use `Read` to inspect cited file (`thread.location` = `path:line`). Use `Edit` (or `Write` for new files) per the thread's `Fix:` suggestion. If suggestion is unclear → fall back to `judge_finding(...) == "defer"`. |
+| `commit_and_push(message)` | Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
+| `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
+| `reply_thread(pr, comment_id, body)` | `gh api "repos/${REPO}/pulls/$pr/comments/$comment_id/replies" -X POST -f body="$body"` |
+| `resolve_thread(node_id)` | GraphQL `resolveReviewThread` mutation (see GH Thread Authoring); guarded with `isResolved` check to skip already-resolved threads. |
+| `escalate(pr, reason, ...)` | Post the escalation comment (template in Safety Circuits > Escalation channel) to the PR. Add label `ultimate-developer:escalated` via `gh pr edit "$pr" --add-label "ultimate-developer:escalated"`. Exit with status 2. |
+| `log_iteration / log_findings / log_decision` | Append a YAML-fenced block (see Logging subsection below) to `research/features/$slug/review-log.md`. Use `tee -a` from a heredoc; do NOT use `>>` with `echo` (escaping issues). |
+
+If a primitive depends on a state not shown in pseudocode (e.g., `$slug`, `$REPO_ROOT`, `$REPO_DIR`), it's because the variable was set earlier in the same phase (see each Phase section's Setup).
 
 ### `post_inline_review` — author the comments as ultimate-developer
 
@@ -1395,31 +1509,57 @@ This makes the log machine-parseable for re-entry recovery (Open Implementation 
 
 You are the SOLE author of all PR thread replies and resolutions. Sub-agents in audit-only mode never touch GitHub.
 
+### Setup (run once at start of any thread-management session)
+
+```bash
+# Resolve current repo from the working tree so the agent is fork-portable.
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)   # e.g. "mobyleOfficial/MoovieAi"
+OWNER="${REPO%%/*}"
+REPO_NAME="${REPO##*/}"
+```
+
 ### Reply to a thread
 
 ```bash
-gh api repos/mobyleOfficial/MoovieAi/pulls/<PR>/comments/<root_comment_id>/replies \
+gh api "repos/${REPO}/pulls/<PR>/comments/<root_comment_id>/replies" \
   -X POST -f body="<reply text>"
 ```
 
-### Resolve a thread (GraphQL)
-
-Reuse the exact pattern documented in `agents/reviewer.md` Step 2:
+### Resolve a thread (GraphQL, paginated)
 
 ```bash
-THREAD_DATA=$(gh api graphql -f query='
-  query($owner:String!,$repo:String!,$pr:Int!){
-    repository(owner:$owner,name:$repo){
-      pullRequest(number:$pr){
-        reviewThreads(first:100){
-          nodes { id isResolved comments(first:1){ nodes { databaseId }}}
+# Paginated fetch — covers PRs with > 100 review threads.
+find_thread() {
+  local pr="$1" target_comment_id="$2" cursor="null"
+  while :; do
+    local page
+    page=$(gh api graphql -f query="
+      query(\$owner:String!,\$repo:String!,\$pr:Int!,\$after:String){
+        repository(owner:\$owner,name:\$repo){
+          pullRequest(number:\$pr){
+            reviewThreads(first:100, after:\$after){
+              pageInfo { hasNextPage endCursor }
+              nodes { id isResolved comments(first:1){ nodes { databaseId }}}
+            }
+          }
         }
-      }
-    }
-  }' -f owner=mobyleOfficial -f repo=MoovieAi -F pr=<PR> \
-  --jq ".data.repository.pullRequest.reviewThreads.nodes[] |
-         select(.comments.nodes[0].databaseId == <comment_id>) |
-         {id, isResolved}")
+      }" -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$pr" -f after="$cursor")
+    local hit
+    hit=$(echo "$page" | jq -r --argjson id "$target_comment_id" \
+      '.data.repository.pullRequest.reviewThreads.nodes
+         | map(select(.comments.nodes[0].databaseId == $id))
+         | .[0] // empty')
+    if [ -n "$hit" ]; then echo "$hit"; return 0; fi
+    local has_next end
+    has_next=$(echo "$page" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
+    end=$(echo "$page"     | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')
+    [ "$has_next" = "true" ] || return 1
+    cursor="$end"
+  done
+}
+
+THREAD_DATA=$(find_thread "<PR>" "<comment_id>")
+if [ -z "$THREAD_DATA" ]; then echo "Thread not found"; exit 1; fi
 
 THREAD_ID=$(echo "$THREAD_DATA" | jq -r .id)
 IS_RESOLVED=$(echo "$THREAD_DATA" | jq -r .isResolved)
@@ -1430,8 +1570,6 @@ if [ "$IS_RESOLVED" = "false" ]; then
   }' -f t="$THREAD_ID"
 fi
 ```
-
-If thread count exceeds 100, paginate with `after` cursors (see reviewer.md note).
 
 ### Reply text conventions
 
@@ -1454,9 +1592,19 @@ Never:
 
 All sub-agents you dispatch run in audit-only mode (where supported). The contract:
 
-### `mode: "audit-only"` literal string
+### `mode: "audit-only"` — canonical form + lenient detection
 
-Always include the literal text `mode: "audit-only"` in the Task `prompt` body — sub-agents grep for this exact string. Example prompt template:
+Always emit the canonical form `mode: "audit-only"` in the Task `prompt` body. Sub-agents detect the flag with the same lenient regex used by `.claude/hooks/validate-audit-only.sh`:
+
+```
+grep -qiE 'mode[[:space:]]*[:=][[:space:]]*["'\'']*audit-only["'\'']*'
+```
+
+Matches all of: `mode: "audit-only"` (canonical), `mode=audit-only`, `mode : 'audit-only'`, `MODE:"audit-only"`. Case-insensitive, tolerates whitespace and either quote style. The lenient detection guards against typos accidentally suppressing the flag (which would silently cause double-posting because the sub-agent would post AND ultimate-developer would post).
+
+A runtime self-check protects against double-posting: when ultimate-developer is about to POST a review on a PR, it first lists the most recent reviews (`gh pr view <PR> --json reviews`) and verifies no review was posted in the last 30 seconds by a different author. If one was found → ESCALATE (likely the sub-agent ignored the flag).
+
+Example prompt template:
 
 ```
 mode: "audit-only"
@@ -1487,12 +1635,20 @@ Return STRICT JSON per your agent definition's audit-only schema. Do NOT post co
 The `Task` tool returns a single text blob (the sub-agent's last message). For audit-only sub-agents, expect a fenced JSON code block as the structured output. Parse with `jq`:
 
 ```bash
-# Assuming the sub-agent's output is captured in $SUBAGENT_OUT
-JSON=$(echo "$SUBAGENT_OUT" | sed -n '/^```json$/,/^```$/p' | sed '1d;$d')
+# Assuming the sub-agent's output is captured in $SUBAGENT_OUT.
+# Sub-agent prose preceding the payload may itself contain ```json example blocks (e.g., schema docs).
+# Extract the LAST fenced ```json block — the payload is always emitted last by audit-only sub-agents.
+JSON=$(printf '%s' "$SUBAGENT_OUT" | python3 -c '
+import sys, re
+blocks = re.findall(r"```json\s*\n(.*?)\n```", sys.stdin.read(), flags=re.S)
+sys.stdout.write(blocks[-1] if blocks else "")
+')
+# Validate it parses as JSON before passing to jq (so we get a clear error instead of jq exit 4).
+echo "$JSON" | jq empty >/dev/null 2>&1 || { echo "ESCALATE: sub-agent output not valid JSON" >&2; exit 1; }
 findings=$(echo "$JSON" | jq -c '.comments // .findings // []')
 ```
 
-If parsing fails (sub-agent returned non-JSON), retry the dispatch once with a stricter instruction. Second failure → escalate.
+If parsing fails (sub-agent returned non-JSON, or no ```json``` block found), retry the dispatch once with a stricter instruction (e.g., "Output ONLY the JSON payload, nothing else."). Second failure → escalate.
 ```
 
 ### Task 6.9: Safety circuits content
@@ -1501,6 +1657,42 @@ If parsing fails (sub-agent returned non-JSON), retry the dispatch once with a s
 
 ```markdown
 ## Safety Circuits
+
+### Pre-merge gate (`safe_merge` — use for EVERY merge)
+
+Autonomous merging is only safe when the target branch has external review gates (branch protection). Without them, ultimate-developer's self-judged review loop is the SOLE quality gate — meaning a single misclassification by `judge_finding` could land broken code with zero outside review. The gate enforces a minimum:
+
+```bash
+safe_merge() {
+  local pr="$1"
+  local target
+  target=$(gh pr view "$pr" --json baseRefName --jq .baseRefName)
+  local protection
+  protection=$(gh api "repos/${REPO}/branches/${target}/protection" 2>/dev/null || echo "{}")
+  local protected
+  protected=$(echo "$protection" | jq -r 'if .url then "true" else "false" end')
+
+  # Release branches: ALWAYS require protection; no override.
+  if [ "$target" = "main" ] || [ "$target" = "master" ]; then
+    if [ "$protected" != "true" ]; then
+      escalate "$pr" "target '$target' is a release branch without protection rules; refusing autonomous merge"
+      return 1
+    fi
+  # Other branches (dev, develop, epic/*): allow autonomous merge only if either
+  # (a) the branch is protected, or (b) the operator opted in with UD_ALLOW_UNPROTECTED_MERGE=1.
+  elif [ "$protected" != "true" ]; then
+    if [ "${UD_ALLOW_UNPROTECTED_MERGE:-0}" != "1" ]; then
+      escalate "$pr" "target '$target' is unprotected; set UD_ALLOW_UNPROTECTED_MERGE=1 to authorize autonomous merging here"
+      return 1
+    fi
+    echo "WARN: autonomous merge into unprotected '$target' (UD_ALLOW_UNPROTECTED_MERGE=1 set)" >&2
+  fi
+
+  gh pr merge "$pr" --squash --delete-branch
+}
+```
+
+Every `gh pr merge` invocation in this plan goes through `safe_merge` instead. Direct `gh pr merge` is forbidden from ultimate-developer.
 
 ### Escalation triggers — STOP autonomous flow
 
@@ -1512,6 +1704,7 @@ If parsing fails (sub-agent returned non-JSON), retry the dispatch once with a s
 6. Spec/plan reviewer reports fundamental infeasibility (e.g., violates existing arch decision)
 7. A pre-commit hook blocks (NO_COAUTHORS, DOCS_UP_TO_DATE, AI_AGNOSTIC_SUBMODULES, LOCAL_CLAUDE_CONFIG, PYTHON_ENVS) → fix and retry once, escalate on second failure
 8. `./gradlew test` or `flutter test` fails on impl phase and 3 fix attempts don't resolve
+9. Pre-merge gate (`safe_merge`) refuses (unprotected release branch, or unprotected non-release without `UD_ALLOW_UNPROTECTED_MERGE=1`)
 
 ### Escalation channel
 
@@ -1541,14 +1734,21 @@ Then `exit` (or return) — do not continue.
 - Never bypass branch protection (don't use admin merge)
 - Never delete a branch you did not create (only delete `feature/<slug>*` and `chore/<slug>-bump-refs` branches that you opened)
 - Never modify `.github/`, `Dockerfile`, `Jenkinsfile`, or any CI config unless the user's feature request explicitly mentions CI
-- Never commit files matching: `.env`, `*.env.local`, `credentials*.json`, `*.pem`, `*.key`, `secrets/*`, `.aws/`, `gha-creds-*` — scan `git diff --cached` before every commit:
+- Never commit files matching: `.env`, `*.env.local`, `credentials*.json`, `*.pem`, `*.key`, `secrets/*`, `.aws/`, `gha-creds-*`, `id_rsa`, `*.p12`, `*.pfx`, `*.keystore`, `*.jks` — scan `git diff --cached` before every commit. Patterns are anchored to basename or path so they don't false-positive on `.envrc` config or `dev.env.example` templates, and don't miss `.aws/config` (the original regex omitted `.aws/`):
 
 ```bash
-if git diff --cached --name-only | grep -E '\.env|credentials.*\.json|\.pem$|\.key$|secrets/|gha-creds-' ; then
+# Anchor patterns to basename boundaries so '.env' matches '.env'/'.env.local' but not 'dev.env.example' or '.envrc'.
+# Path patterns (.aws/, secrets/) match anywhere in the path.
+if git diff --cached --name-only | grep -E \
+  '(^|/)\.env(\..*)?$|(^|/)credentials.*\.json$|\.pem$|\.key$|(^|/)secrets/|(^|/)\.aws/|(^|/)gha-creds-|(^|/)id_rsa(\.pub)?$|\.p12$|\.pfx$|\.keystore$|\.jks$' ; then
   echo "ESCALATE: secret-pattern file staged"
+  git diff --cached --name-only | grep -E \
+    '(^|/)\.env(\..*)?$|(^|/)credentials.*\.json$|\.pem$|\.key$|(^|/)secrets/|(^|/)\.aws/|(^|/)gha-creds-|(^|/)id_rsa(\.pub)?$|\.p12$|\.pfx$|\.keystore$|\.jks$'
   exit 1
 fi
 ```
+
+If a file genuinely should be committed despite matching (e.g., an `example.env` template), the user must un-stage and re-stage explicitly with a `git commit --no-verify`-equivalent override — which ultimate-developer is forbidden from using. Escalate to user instead.
 
 ### Kill switch — `UD_HALT` sentinel
 
@@ -1619,7 +1819,7 @@ After all phases complete (or on escalation), print a final report to stdout:
 - [ ] **Step 1: Run the full smoke test**
 
 ```bash
-/tmp/test-ud.sh
+"$SMOKE"
 ```
 Expected: PASS.
 
@@ -1630,11 +1830,12 @@ wc -l agents/ultimate-developer.md  # expect ~400-500 lines
 grep -cF '## ' agents/ultimate-developer.md  # expect ≥ 10
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit + cleanup**
 
 ```bash
 git add agents/ultimate-developer.md
 git commit -m "feat(agents): add ultimate-developer orchestrator"
+rm "$SMOKE"
 ```
 
 ---
@@ -1644,7 +1845,7 @@ git commit -m "feat(agents): add ultimate-developer orchestrator"
 ### Task 7.1: `commands/ultimate-feature.md`
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/commands/ultimate-feature.md`
+- Create: `commands/ultimate-feature.md`
 
 - [ ] **Step 1: Write the file**
 
@@ -1685,7 +1886,7 @@ git commit -m "feat(commands): add /ultimate-feature slash command"
 ### Task 8.1: Update `agents/README.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/agents/README.md`
+- Modify: `agents/README.md`
 
 - [ ] **Step 1: Add new agents to the "Available Agents" sections**
 
@@ -1715,7 +1916,7 @@ git commit -m "doc(agents): document ultimate-developer, researcher, backend-imp
 ### Task 8.2: Update root `CLAUDE.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/CLAUDE.md`
+- Modify: `CLAUDE.md`
 
 - [ ] **Step 1: Edits**
 
@@ -1745,7 +1946,7 @@ git commit -m "doc(claude-md): document autonomous feature pipeline + new agents
 ### Task 8.3: Update `.claude/CLAUDE.md`
 
 **Files:**
-- Modify: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/.claude/CLAUDE.md`
+- Modify: `.claude/CLAUDE.md`
 
 - [ ] **Step 1: Add subsection "## Audit-Only Convention" under "Subagent Dispatch" section**
 
@@ -1797,7 +1998,7 @@ In a fresh Claude Code session in this repo:
 
 - [ ] **Step 2: Answer kickoff questions exactly once**
 
-- Target branch: `develop`
+- Target branch: `dev`
 - Scope: `moovie`
 - Slug: `movie-list-refresh-button`
 
@@ -1812,8 +2013,9 @@ Watch each phase in turn. Don't intervene unless escalation fires.
 - [ ] **Step 1: Verify spec phase**
 
 ```bash
+# gh pr list --search treats ( ) : as operators; use --json + jq to filter on exact title prefix instead.
 ls research/features/movie-list-refresh-button/
-gh pr list --state merged --search "doc(movie-list-refresh-button): spec"
+gh pr list --state merged --json title,number --jq '.[] | select(.title | startswith("doc(movie-list-refresh-button): spec"))'
 ```
 Expected: `spec.md` + `kickoff.md` present; spec PR shows as merged.
 
@@ -1821,7 +2023,7 @@ Expected: `spec.md` + `kickoff.md` present; spec PR shows as merged.
 
 ```bash
 ls research/features/movie-list-refresh-button/research/
-gh pr list --state merged --search "doc(movie-list-refresh-button): plan"
+gh pr list --state merged --json title,number --jq '.[] | select(.title | startswith("doc(movie-list-refresh-button): plan"))'
 ```
 Expected: 2-5 research files; plan PR merged.
 
@@ -1830,7 +2032,7 @@ Expected: 2-5 research files; plan PR merged.
 ```bash
 cd moovie
 git log --oneline | head -20
-gh pr list --state merged --search "feat(movie-list-refresh-button)"
+gh pr list --state merged --json title,number --jq '.[] | select(.title | startswith("feat(movie-list-refresh-button)"))'
 flutter test
 ```
 Expected: feature commits present; impl PR merged; tests pass.
@@ -1838,10 +2040,10 @@ Expected: feature commits present; impl PR merged; tests pass.
 - [ ] **Step 4: Verify submodule bump**
 
 ```bash
-cd /Users/edyuto/Desktop/Projects/Mobyle/MoovieAi
+cd "$REPO_ROOT"  # back to meta-repo root
 git log --oneline | grep "bump submodule refs" | head -3
 ```
-Expected: bump commit on `develop`.
+Expected: bump commit on `dev`.
 
 ### Task 9.4: Verify cap behavior (manual stress test, optional)
 
@@ -1858,7 +2060,7 @@ Confirm: escalation comment posted on the impl PR; agent exited; PR left open (n
 ### Task 9.5: Capture lessons learned
 
 **Files:**
-- Create: `/Users/edyuto/Desktop/Projects/Mobyle/MoovieAi/research/features/ultimate-developer/smoke-test-log.md`
+- Create: `research/features/ultimate-developer/smoke-test-log.md`
 
 - [ ] **Step 1: Write the log**
 
