@@ -55,11 +55,12 @@ Spawning a subagent costs more than reading files inline. Spawn only when the ta
 
 ## Skill Autoload
 
-The following skills should be invoked proactively when their trigger fits:
+The following skills should be invoked proactively when their trigger fits. Skills are exposed as slash commands — humans type `/<skill-name>`; the `Skill("<name>")` tool form is for programmatic invocation from within agents:
 
-- `Skill("verify-docs-before-pr")` — before opening any PR, run this to confirm docs are in sync with code changes.
-- `Skill("moovie-research-format")` — when writing or editing research docs in `research/`.
-- `Skill("setting-up-linear-mcp")` — when configuring Linear MCP for the first time or rotating tokens.
+- `/moovie-research-format` — when writing or editing research docs in `research/`.
+- `/setting-up-linear-mcp` — when configuring Linear MCP for the first time or rotating tokens.
+
+Note: docs-sync is now hook-enforced (`.claude/hooks/check-docs-sync.sh` blocks `gh pr create` / `git push` when public-surface changes lack matching doc updates), so `/verify-docs-before-pr` does not need to be called proactively. It remains available as a manual pre-flight self-check.
 
 Auto-discovered from `.claude/skills/<name>/SKILL.md`. No manual registration.
 

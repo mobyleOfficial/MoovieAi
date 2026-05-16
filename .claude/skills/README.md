@@ -10,11 +10,15 @@ Project-level Claude Code skills for the MoovieAi ecosystem. Each subdirectory h
 
 ## Invocation
 
+Skills are exposed as slash commands. Type `/<skill-name>` at the prompt:
+
 ```text
-Skill("skill-name")
+/skill-name
 ```
 
-For example, `Skill("moovie-research-format")` to start formatted research, or `Skill("verify-docs-before-pr")` before opening a PR.
+For example, `/moovie-research-format` to start formatted research, or `/verify-docs-before-pr` for a manual pre-PR doc check (the `check-docs-sync.sh` hook already enforces docs-sync at `gh pr create` / `git push` time).
+
+The `Skill("<name>")` tool form is reserved for programmatic invocation from within an agent or other skill — humans should prefer the slash command.
 
 ## Scaffolding Workflows
 
