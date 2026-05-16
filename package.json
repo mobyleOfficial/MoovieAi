@@ -2,7 +2,13 @@
   "name": "moovieai-meta",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "postinstall": "patch-package"
+  },
   "dependencies": {
     "linear-mcp": "^1.2.0"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }
