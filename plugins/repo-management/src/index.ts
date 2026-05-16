@@ -82,11 +82,20 @@ const handlers: Record<string, ToolHandler> = {
 
     run("git", ["add", "--", name]);
 
-    // Status-porcelain restricted to the submodule path; reliably detects
-    // whether THIS submodule reference changed.
-    const status = run("git", ["status", "--porcelain", "--", name]);
+    // `git status --porcelain -- <submodule>` reports a non-empty string when
+    // the submodule's working tree is dirty (uncommitted changes inside) even
+    // if the meta-repo's pointer didn't move. That would lead `git commit` to
+    // fail since nothing is staged in the meta-repo. Use `git diff --cached
+    // --quiet --` to ask the precise question: was the submodule pointer
+    // staged for commit? Exit 0 = no staged change, 1 = staged change.
+    let pointerStaged = false;
+    try {
+      run("git", ["diff", "--cached", "--quiet", "--", name]);
+    } catch {
+      pointerStaged = true;
+    }
 
-    if (!status.trim()) {
+    if (!pointerStaged) {
       return `✓ Submodule '${name}' already up to date (${commit})`;
     }
 
@@ -108,15 +117,19 @@ const handlers: Record<string, ToolHandler> = {
     assertGitRef(name, "feature name");
     const branchName = `feature/${name}`;
 
-    // Checkout the base branch FIRST so any submodule-pointer commits
-    // produced by sync-submodule land on `develop`, not on whatever
-    // branch happened to be current when the tool was invoked.
+    // Order matters here:
+    //   1. Checkout the base branch and pull — gives us a clean, up-to-date
+    //      starting point.
+    //   2. Create the feature branch from base.
+    //   3. Sync submodules ON the feature branch — any submodule-pointer
+    //      commits land on the feature branch, NOT on `develop`, so the
+    //      developer's local `develop` doesn't accumulate chore commits.
     checkoutDevBaseAndPull();
+    run("git", ["checkout", "-b", branchName]);
 
     await handlers["sync-submodule"]({ name: "moovie" });
     await handlers["sync-submodule"]({ name: "backend" });
 
-    run("git", ["checkout", "-b", branchName]);
     return `✓ Created feature branch '${branchName}' (submodules synced)`;
   },
 
@@ -126,12 +139,14 @@ const handlers: Record<string, ToolHandler> = {
     assertGitRef(version, "version");
     const branchName = `release/${version}`;
 
+    // Same ordering as create-feature-branch — submodule-pointer commits
+    // land on the release branch, not on `develop`.
     checkoutDevBaseAndPull();
+    run("git", ["checkout", "-b", branchName]);
 
     await handlers["sync-submodule"]({ name: "moovie" });
     await handlers["sync-submodule"]({ name: "backend" });
 
-    run("git", ["checkout", "-b", branchName]);
     return `✓ Created release branch '${branchName}' (submodules synced)`;
   },
 
@@ -147,9 +162,17 @@ const handlers: Record<string, ToolHandler> = {
     }
     assertGitRef(branch, "current branch");
 
-    let baseRef: "main" | "develop" = "main";
-    if (branch.startsWith("feature/") || branch.startsWith("fix/")) {
-      baseRef = "develop";
+    // Align with .claude/verify-docs.sh base-branch resolution:
+    //   release/*, develop, main -> main
+    //   everything else          -> develop
+    // Anything that lands on `main` must be an explicit release-style branch.
+    let baseRef: "main" | "develop" = "develop";
+    if (
+      branch.startsWith("release/") ||
+      branch === "develop" ||
+      branch === "main"
+    ) {
+      baseRef = "main";
     }
 
     run("git", ["push", "-u", "origin", branch]);
