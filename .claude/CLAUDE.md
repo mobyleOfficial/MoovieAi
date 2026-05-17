@@ -34,9 +34,15 @@ Per-agent hooks (defined in pipeline-agent frontmatter): `validate-spec.sh`, `va
 - **`Plan`** — implementation strategy for multi-step tasks.
 - **`general-purpose`** — open-ended research or multi-step work.
 - **`claude-code-guide`** — questions about Claude Code (CLI, Agent SDK, Anthropic API).
-- Pipeline agents (`pm-spec`, `architect-review`, `implementer-tester`, `validator`) — for the feature-development pipeline. Invoked via `/agents/<name>.md` flow.
+- Pipeline agents (`pm-spec`, `architect-review`, `implementer-tester`, `validator`, `ultimate-developer`, `researcher`, `backend-implementer`) — for the feature-development pipeline. Invoked via `/agents/<name>.md` flow.
 
 Spawning a subagent costs more than reading files inline. Spawn only when the task spans multiple files / multiple search angles, when context window protection matters, or when an explicit agent type fits the task.
+
+## Audit-Only Convention
+
+When dispatching `reviewer`, `validator`, or `architect-review` from an orchestrator agent (e.g. `ultimate-developer`), include the literal string `mode: "audit-only"` in the Task `prompt` body. The sub-agent suppresses all GitHub writes and returns STRICT JSON findings. The orchestrator is then responsible for posting comments, replying to threads, and resolving them.
+
+Default invocation (no `mode` flag) keeps full GH-writing behavior — used by `/review-pr` and direct human invocations.
 
 ## Output Formatting
 
