@@ -38,4 +38,4 @@ The reviewer agent:
 5. Posts surviving findings as inline GitHub review comments
 6. Returns a STRICT JSON summary
 
-See [`agents/reviewer.md`](../agents/reviewer.md) for the full workflow specification.
+See [`agents/reviewer.md`](../../agents/reviewer.md) for the full workflow specification.

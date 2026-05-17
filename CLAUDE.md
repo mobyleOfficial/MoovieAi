@@ -24,7 +24,7 @@ MoovieAi/
 ├── plugins/          # Claude Code MCP servers (e.g. repo-management)
 ├── rules/            # Ecosystem policies + lint rules
 ├── patches/          # npm patches applied by patch-package on install
-├── commands/         # Slash commands (/new-usecase, /review-pr, ...)
+├── .claude/commands/ # Slash commands (/new-usecase, /review-pr, /ultimate-feature, ...)
 ├── agents/           # Pipeline + reviewer agents (auto-discovered Markdown)
 ├── .claude/skills/   # Project-level Claude Code skills (auto-discovered)
 ├── .claude/hooks/    # Pre/Post/SessionStart hooks enforcing rules
@@ -164,8 +164,8 @@ Auto-discovered Markdown agent definitions (no registration needed). Dispatched 
 - `reviewer` — orchestrator; dispatches the three sub-reviewers, dedupes, posts one batched GitHub review with severity badges
 - `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` — scoped sub-reviewers, one domain each
 
-### `commands/`
-Slash commands invoked via `/<name>`. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent; `/ultimate-feature` invokes the `ultimate-developer` agent for autonomous end-to-end feature delivery.
+### `.claude/commands/`
+Slash commands invoked via `/<name>`. Claude Code auto-discovers files from this path; no registration needed. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent; `/ultimate-feature` invokes the `ultimate-developer` agent for autonomous end-to-end feature delivery. (Repo-root `commands/` is NOT a Claude Code discovery path — files there are not callable as slash commands.)
 
 ### `.claude/hooks/`
 Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rules/` is backed by a hook here — see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table.
@@ -335,7 +335,7 @@ Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility
 - `moovie-research-format` — standardized format for design docs / architecture decisions / research
 - `verify-docs-before-pr` — manual docs check (the `check-docs-sync.sh` hook already blocks PRs / pushes that fall out of sync — invoke this skill only for a pre-flight self-check)
 
-**4. Slash commands** — invoked via `/<name>`, defined under `commands/`:
+**4. Slash commands** — invoked via `/<name>`, defined under `.claude/commands/`:
 - `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — scaffolding, feed into the `implementer-tester` agent
 - `/review-pr <PR#>` — runs the `reviewer` agent against a GitHub PR
 - `/ultimate-feature "<request>"` — runs the `ultimate-developer` agent for autonomous end-to-end feature delivery

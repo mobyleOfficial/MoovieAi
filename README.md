@@ -28,7 +28,7 @@ After bootstrap, set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json` (git
 - **[.claude/hooks/](.claude/hooks)** — Pre/Post/Session hooks that enforce rules
 - **[.claude/CLAUDE.md](.claude/CLAUDE.md)** — Claude/tooling-specific behavior (companion to root `CLAUDE.md`)
 - **[agents/](agents)** — Pipeline agents (`pm-spec`, `architect-review`, `implementer-tester`, `validator`, `reviewer`)
-- **[commands/](commands)** — Slash commands (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`)
+- **[.claude/commands/](.claude/commands)** — Slash commands (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`)
 - **[patches/](patches)** — npm patches applied by `patch-package` on install (e.g. `linear-mcp+1.2.0.patch`)
 
 See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete development guide. See [`.claude/CLAUDE.md`](.claude/CLAUDE.md) for Claude Code tool preferences, hook expectations, and subagent dispatch rules.
@@ -81,7 +81,7 @@ Feature-development pipeline lives in [`agents/`](agents). Dispatched via the `T
 
 ### Slash Commands
 
-Scaffolding + review shortcuts in [`commands/`](commands):
+Scaffolding + review shortcuts in [`.claude/commands/`](.claude/commands):
 
 - `/new-usecase <feature> <usecase> [params] [response]` — scaffold a domain use case
 - `/new-datasource <feature> <datasource> <type>` — scaffold a data-layer data source
