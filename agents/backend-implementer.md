@@ -73,7 +73,7 @@ Tests mirror `main/` exactly under `backend/src/test/kotlin/org/mobyle/`. Create
    - Add `testImplementation(kotlin("test"))` and `testImplementation("io.mockk:mockk:1.13.13")` to `build.gradle.kts` if not already present.
 4. Run `./gradlew test` from inside `backend/` → expect failure (tests are red).
 5. Implement the minimum production code to make each test pass:
-   - Use case `invoke` functions use `runBlocking { repository.suspendFun() }` — do **not** make them `suspend` until the calling layer is made coroutine-aware.
+   - Use case `invoke` functions use `runBlocking { repository.suspendFun() }` — do **not** make them `suspend` until the calling layer is made coroutine-aware. This is a known performance trade-off (see `rules/backend-architecture.md` — `runBlocking` blocks a Ktor worker thread under load); the constraint exists to keep the codebase consistent with existing routes. If the feature request explicitly asks to migrate to suspend, stop and ask — that's an ecosystem-level refactor (record a decision under `research/decisions/` first).
    - Routes use `by injection<T>()` (the custom helper in `di/Utils.kt`), never bare `by inject()`.
    - Secrets come from `System.getenv("TMDB_API_KEY")` — never from `environment.config` or any config file. The `IllegalStateException` is thrown lazily on first request when the key is absent; do not suppress it.
    - Register every new use case as `factory {}` in `di/AppModule.kt`; register new repository implementations and data-source bindings in `data/di/DataModule.kt`.
