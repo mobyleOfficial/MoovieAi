@@ -28,6 +28,15 @@ These rules apply when working inside the `moovie/` submodule. They are enforced
 | [accessibility](accessibility.md) | `flutter analyze` lints + manual review (no shell hook — WCAG / contrast / 48dp checks are not shell-enforceable) |
 | [variable-naming](variable-naming.md) | `flutter analyze` lints + manual review |
 
+## Backend / Submodule-scoped Rules (per-agent enforcement)
+
+These rules apply when working inside the `backend/` submodule. They are enforced by the `backend-implementer` agent and the `reviewers/architecture` sub-reviewer.
+
+| Rule | Scope | Enforcement |
+|------|-------|-------------|
+| [backend-architecture](backend-architecture.md) | `backend/` submodule | `backend-implementer` agent + reviewer architecture sub-reviewer |
+| [backend-testing](backend-testing.md) | `backend/src/test/` | `backend-implementer` agent (test scaffolding) |
+
 See [`.claude/hooks/README.md`](../.claude/hooks/README.md) for the full registration model.
 
 ## How to Add a Rule
