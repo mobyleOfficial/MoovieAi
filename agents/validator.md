@@ -205,3 +205,36 @@ Note: these are two **independent** review passes that share the same sub-review
 - The inline comments run against the PR diff in the `reviewer` agent's own pipeline (validation + ≥0.6 confidence cutoff + diff-line mapping + dedup against existing inline comments).
 
 If divergence between the two outputs surfaces a real disagreement (a finding present in one but not the other), trust the inline comments — they are post-validation. The local report is the deeper but lower-precision artifact.
+
+## Audit-Only Mode
+
+When the invoking prompt contains `mode: "audit-only"`:
+
+1. **SKIP the PR Inline-Comment Mode section entirely** — do not detect PRs, do not dispatch `reviewer` subagent.
+2. Still write the local validation report to `research/features/<slug>/review-log.md` if `slug=<slug>` is also provided (otherwise the legacy path).
+3. Append a STRICT JSON summary to stdout as the sole structured output:
+
+```json
+{
+  "status": "PASS" or "FAIL",
+  "summary": "<one-paragraph overall assessment>",
+  "findings": [
+    {
+      "severity": "critical" | "important" | "minor",
+      "category": "architecture" | "security" | "testing" | "performance" | "localization" | "accessibility" | "code-quality" | "correctness",
+      "title": "<short>",
+      "location": "<path:line>",
+      "impact": "<why this matters>",
+      "recommendation": "<concrete fix>"
+    }
+  ],
+  "positive_notes": ["<string>", "..."]
+}
+```
+
+Severity mapping (validator → ultimate-developer thread treatment):
+- `critical` → must-fix, agent treats as HIGH-priority fix
+- `important` → fix unless cheap reject
+- `minor` → fix-or-reject judgment per heuristic
+
+Default behavior (no `mode` flag) unchanged.
