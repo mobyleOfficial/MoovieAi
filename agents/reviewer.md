@@ -293,6 +293,28 @@ Print a STRICT JSON summary back to the caller:
 
 ---
 
+## Audit-Only Mode
+
+Detection (use this exact regex; matches canonical `mode: "audit-only"` plus lenient variants like `mode=audit-only`, `MODE: 'audit-only'`, etc.):
+
+```
+echo "$PROMPT" | grep -qiE 'mode[[:space:]]*[:=][[:space:]]*["'"'"']*audit-only["'"'"']*'
+```
+
+When the regex matches:
+
+1. **SKIP Step 2** entirely — do not reply to or resolve any prior threads. Leave thread state untouched.
+2. **SKIP Step 9** entirely — do not POST a review. Return the STRICT JSON summary from Step 10 to stdout as the sole output.
+3. All other steps (1, 3–8) run unchanged.
+
+Rationale: the caller (typically `ultimate-developer`) owns all GitHub thread management and posts comments under its own authorship. This mode lets `reviewer` act as a pure analyzer.
+
+The Step 10 JSON schema is the contract — do not add or remove fields. Callers parse `posted_comments: 0` and the `comments` array to know what to post themselves.
+
+Default behavior (no `mode` flag) is unchanged: full GH-writing pipeline as documented above.
+
+---
+
 ## Strict Rules
 
 - ONLY include validated findings (Step 5)
