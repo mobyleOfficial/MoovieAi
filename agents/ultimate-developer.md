@@ -66,6 +66,12 @@ Commit the kickoff file on the user's current branch (where the agent is running
 
 After kickoff: no more `AskUserQuestion` calls until escalation. All decisions autonomous.
 
+**Set `REVIEW_LOG` once after kickoff** (before entering any phase loop):
+```bash
+REVIEW_LOG="$REPO_ROOT/research/features/$slug/review-log.md"
+```
+All log primitives (`log_iteration`, `log_findings`, `log_decision`, `increment_fix_attempts`, `reset_fix_attempts`) use `"$REVIEW_LOG"` as an absolute path. This is required because CWD shifts into submodule directories during the impl phase; a relative path would resolve inside the submodule and miss the file.
+
 ## Spec Phase
 
 ### Step 1 — Generate spec
@@ -208,11 +214,15 @@ Behavior branches on `scope` collected at kickoff.
 
 ### Per-repo impl loop
 
+**Before the loop** (capture once, before iterating over repos):
+```bash
+REPO_ROOT="$(pwd)"  # meta-repo root — set ONCE before the loop; do NOT re-set inside iterations
+```
+
 Repeat for each repo in scope (backend first if `both`):
 
 1. **Setup**:
    ```bash
-   REPO_ROOT="$(pwd)"  # capture meta-repo root for the cd-back after merge (used by submodule-bump PR step)
    REPO_DIR="<submodule>"  # use this var in all git commands below to make commit_and_push unambiguous
    cd "$REPO_DIR"
    git fetch origin
@@ -261,6 +271,8 @@ Repeat for each repo in scope (backend first if `both`):
    - `reviewers=reviewer,validator` (both audit-only)
 
 6. **Merge**: `safe_merge "$IMPL_PR"` (Pre-merge gate; never direct `gh pr merge`)
+
+7. **Restore CWD**: `cd "$REPO_ROOT"` — return to meta-repo root before the next iteration begins. This is required for `scope=both` (two iterations); without it, the second iteration's `REPO_DIR` lookup and `cd "$REPO_DIR"` would be relative to the previous submodule's directory.
 
 ### Final meta-repo submodule-bump PR
 
@@ -330,7 +342,7 @@ Generic loop, parameterized by `phase`, `pr`, `max_iter`, `reviewers`. Runs the 
 iter = 0
 while iter < max_iter:
     iter += 1
-    log_iteration(iter, pr, phase)  # appends to research/features/<slug>/review-log.md
+    log_iteration(iter, pr, phase)  # appends to $REVIEW_LOG (absolute path set after kickoff)
 
     # Step A — snapshot prior comments before reviewer runs
     prior_comments = gh_root_comments(pr)
@@ -356,8 +368,7 @@ while iter < max_iter:
     for thread in open_threads:
         decision = judge_finding(thread, severity, confidence, spec_context)
         if decision == "fix":
-            # apply_fix returns "ok" on success, "verification_failed" if Step 3 verification fails (already reverted),
-            # or "deferred" if suggestion was unclear and judge_finding fell through.
+            # apply_fix returns "ok", "verification_failed", "deferred", or "stash_conflict"
             result = apply_fix(thread)  # see Primitive reference for the 3-step contract
             if result == "verification_failed":
                 attempts = increment_fix_attempts(thread.id)  # see fix_attempts primitive
@@ -370,6 +381,13 @@ while iter < max_iter:
             if result == "deferred":
                 escalate(pr, "defer:suggestion unclear", thread=thread)
                 return "ABORTED"
+            if result == "stash_conflict":
+                attempts = increment_fix_attempts(thread.id)
+                if attempts >= 3:
+                    escalate(pr, "3 stash_conflict failures", thread=thread)
+                    return "ABORTED"
+                log_decision(iter, thread, f"stash-conflict-{attempts}", None)
+                continue
             commit_and_push(message=f"fix({slug}): address review finding — {thread.title}")
             sha = head_sha()
             reply_thread(pr, thread.id, f"Fixed in {sha}. {one_line_how_we_fixed_it}")
@@ -417,19 +435,19 @@ The loop's pseudocode names map to these concrete operations. The implementer mu
 | Pseudocode primitive | Real implementation |
 |---|---|
 | `gh_root_comments(pr)` | `gh api --paginate "repos/${REPO}/pulls/$pr/comments" --jq '[.[] \| select(.in_reply_to_id == null) \| {id, node_id, path, line, body, user: .user.login}]'` (returns JSON array) |
-| `gh_unresolved_threads(pr)` | Paginated GraphQL query (see GH Thread Authoring `find_thread` pattern) filtered to `nodes[] \| select(.isResolved == false)` — returns array of `{id, comments[]}` |
+| `gh_unresolved_threads(pr)` | Paginated GraphQL query that enumerates ALL open review threads on the PR. **Distinct from `find_thread`**: `find_thread` looks up ONE specific thread by `comment_id` (for resolving a known thread); `gh_unresolved_threads` scans ALL threads and returns every unresolved one — different shape, similar pagination structure. Implementation: use the same outer `while :; do` cursor-pagination loop as `find_thread` but (a) no `comment_id` filter and (b) collect nodes across pages, filtering to `select(.isResolved == false)`. Pseudocode: `cursor=""; result=[]`; loop: build `args` array with `first:100,after:$cursor` (omit `after` on first call — same "no literal null" rule as `find_thread`); call `gh api graphql` with the `reviewThreads` query; append `nodes \| map(select(.isResolved == false))` to `result`; advance cursor or break. Return `result` as a JSON array of `{id, isResolved, comments: {nodes: [{databaseId, body}]}}`. |
 | `dispatch_reviewers_audit_only(pr, phase, reviewers[])` | A single message containing one `Task(subagent_type=<r>, prompt="mode: \"audit-only\"\nslug=$slug\npr=$pr\niter=$iter\n...")` per reviewer in `reviewers`. Parse each return via the JSON extractor (see Sub-Agent Dispatch > Parsing). Merge `.comments // .findings` arrays. |
 | `dedupe(findings, prior_comments)` | Normalize body BEFORE hashing. `post_inline_review` prepends a CRITICAL prefix (only for critical) and one or more stacked `gstatic` badge images (security + severity badges separated by spaces, per `agents/reviewer.md`), so raw-finding bodies and stored-comment bodies will never hash-match without normalization. Use Python regex so the strip handles BOTH the repeating-badge group AND the optional CRITICAL text in one pass: `import re; def normalize(body): body = re.sub(r'^\s*\*\*CRITICAL\*\*\s*', '', body); body = re.sub(r'^\s*(!\[[^\]]*\]\([^)]*gstatic[^)]*\)\s*)+\n*', '', body); return body.strip()[:80]`. Then `hash = sha1_hex(path + ":" + line + ":" + normalize(body))`, computed via Python (portable across macOS/Linux — avoids the `sha1` shell command which is unavailable on most platforms): `hash=$(printf -- '%s' "$key" \| python3 -c 'import hashlib,sys; print(hashlib.sha1(sys.stdin.read().encode()).hexdigest())')`. Apply same `normalize`+hash to each `prior_comments[]`. Drop findings whose hash matches an unresolved prior comment. |
 | `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. |
 | `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. |
-| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, `"deferred"`, or `"stash_conflict"`. The caller's pseudocode branches on this value (treat `stash_conflict` same as `verification_failed` for retry counting; on the 3rd `stash_conflict` escalate with that reason — pop conflicts rarely auto-resolve). **Critical invariant:** user may have pre-existing uncommitted work when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. ALWAYS pop the stash before returning, NEVER drop it. Drop loses user work. **Step 1 — capture pre-state.** `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. Set `STASH_CREATED=true` if `git stash push` reported a new entry, else `false`. The `-u` flag stashes untracked too. Tag with `<thread_id>` so orphan-stash recovery can recognize ours. **Step 2 — apply with explicit path recording.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Apply edits via a wrapper that explicitly populates `STEP2_PATHS_TRACKED` and `STEP2_PATHS_UNTRACKED` arrays. All `STEP2_PATHS_*` entries MUST be relative to the repo root. De-duplicate with an empty-array guard before Step 3. If the suggestion is unparseable or contradictory before any edit, pop the stash and return `"deferred"`. **Step 3 — verify.** Run the phase's verification command. On PASS: stage exactly our paths, then pop the stash so user's prior work returns to the working tree (unstaged). On pop conflict on PASS branch: revert our edits, leave stash in place, escalate, return `"stash_conflict"`. On FAIL: revert our edits before popping the stash; on pop conflict, escalate and return `"stash_conflict"`. Return `"verification_failed"`. **Per-phase verification commands:** spec/plan: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + markdown link check on touched links; impl moovie: `(cd moovie && flutter analyze && flutter test)`; impl backend: `(cd backend && ./gradlew test)`. |
+| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, `"deferred"`, or `"stash_conflict"`. The caller's pseudocode branches on this value (treat `stash_conflict` same as `verification_failed` for retry counting; on the 3rd `stash_conflict` escalate with that reason — pop conflicts rarely auto-resolve). **Critical invariant:** user may have pre-existing uncommitted work when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. Only pop the stash when STASH_CREATED=true — if the working tree was clean at Step 1, there is no stash entry; an unconditional pop would pop unrelated user-saved WIP, causing silent data loss. NEVER drop the stash. **Step 1 — capture pre-state.** `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. Set `STASH_CREATED=true` if `git stash push` reported a new entry (output contains "Saved working directory"), else `STASH_CREATED=false`. The `-u` flag stashes untracked too. Tag with `<thread_id>` so orphan-stash recovery can recognize ours. **Step 2 — apply with explicit path recording.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Apply edits via a wrapper that explicitly populates `STEP2_PATHS_TRACKED` and `STEP2_PATHS_UNTRACKED` arrays. All `STEP2_PATHS_*` entries MUST be relative to the repo root. De-duplicate with an empty-array guard before Step 3. If the suggestion is unparseable or contradictory before any edit, run `[ "$STASH_CREATED" = "true" ] && git stash pop` and return `"deferred"`. **Step 3 — verify.** Run the phase's verification command. On PASS: stage exactly our paths, then run `[ "$STASH_CREATED" = "true" ] && git stash pop` — only pop when STASH_CREATED=true — so user's prior work returns to the working tree (unstaged). On pop conflict on PASS branch: revert our edits, leave stash in place, escalate, return `"stash_conflict"`. On FAIL: revert our edits, then run `[ "$STASH_CREATED" = "true" ] && git stash pop` — only pop when STASH_CREATED=true; on pop conflict, escalate and return `"stash_conflict"`. Return `"verification_failed"`. **Per-phase verification commands:** spec/plan: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + markdown link check on touched links; impl moovie: `flutter analyze && flutter test` (CWD is already the submodule — see note below); impl backend: `./gradlew test` (CWD is already the submodule — see note below). **Note:** Impl-phase verification commands assume CWD is the submodule (the loop's `cd $REPO_DIR` has already happened). Do NOT wrap them in `(cd moovie && ...)` or `(cd backend && ...)` — that would fail since CWD is already inside the submodule. |
 | `commit_and_push(message)` | Preconditions: `apply_fix` returned `"ok"` (verification passed). Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
-| `increment_fix_attempts(thread_id)` / `reset_fix_attempts(thread_id)` | Per-thread fix-attempt counter. **Storage:** in-process bash associative array `FIX_ATTEMPTS` (`declare -A FIX_ATTEMPTS` at agent start), plus a mirrored line in `research/features/<slug>/review-log.md` so the counter survives mid-loop interruption + re-entry. **Key:** `thread_id` (the `node_id` from `gh_root_comments`, stable across passes). **Increment:** `FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1)); echo "fix_attempts[$thread_id]=${FIX_ATTEMPTS[$thread_id]}" >> review-log.md`; returns the new value. **Reset (on successful commit):** `unset 'FIX_ATTEMPTS[$thread_id]'; echo "fix_attempts[$thread_id]=0" >> review-log.md`. **Recovery on re-entry:** scan review-log.md for the latest `fix_attempts[$id]=N` line per id and restore the in-memory map. **Cap:** 3. |
+| `increment_fix_attempts(thread_id)` / `reset_fix_attempts(thread_id)` | Per-thread fix-attempt counter. **Storage:** in-process bash associative array `FIX_ATTEMPTS` (`declare -A FIX_ATTEMPTS` at agent start), plus a mirrored line in `"$REVIEW_LOG"` (absolute path — set after kickoff; primitives must not use a relative path here since CWD shifts during impl phase) so the counter survives mid-loop interruption + re-entry. **Key:** `thread_id` (the `node_id` from `gh_root_comments`, stable across passes). **Increment:** `FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1)); echo "fix_attempts[$thread_id]=${FIX_ATTEMPTS[$thread_id]}" >> "$REVIEW_LOG"`; returns the new value. **Reset (on successful commit):** `unset 'FIX_ATTEMPTS[$thread_id]'; echo "fix_attempts[$thread_id]=0" >> "$REVIEW_LOG"`. **Recovery on re-entry:** scan `"$REVIEW_LOG"` for the latest `fix_attempts[$id]=N` line per id and restore the in-memory map. **Cap:** 3. |
 | `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
 | `reply_thread(pr, comment_id, body)` | `gh api "repos/${REPO}/pulls/$pr/comments/$comment_id/replies" -X POST -f body="$body"` |
 | `resolve_thread(node_id)` | GraphQL `resolveReviewThread` mutation (see GH Thread Authoring); guarded with `isResolved` check to skip already-resolved threads. |
 | `escalate(pr, reason, **kwargs)` | Post the escalation comment (template in Safety Circuits > Escalation channel) to the PR. Accepted keyword args: `thread` (the thread object for thread-specific escalations — included in the comment body when present), `iter` (current iteration count, for cap-hit escalations), and any other context the caller wants threaded into the comment. Add label `ultimate-developer:escalated` via `gh pr edit "$pr" --add-label "ultimate-developer:escalated"`. Exit with status 2. The signature is **keyword-or-positional after `reason`** — call as `escalate(pr, "<reason>", thread=thread)`. Implementer must standardize on one calling style in code. |
-| `log_iteration / log_findings / log_decision` | Append a YAML-fenced block (see Logging subsection below) to `research/features/$slug/review-log.md`. Use `tee -a` from a heredoc; do NOT use `>>` with `echo` (escaping issues). |
+| `log_iteration / log_findings / log_decision` | Append a YAML-fenced block (see Logging subsection below) to `"$REVIEW_LOG"` (absolute path — set after kickoff; use the variable, not a relative path, since CWD shifts during impl phase). Use `tee -a` from a heredoc; do NOT use `>>` with `echo` (escaping issues). |
 
 If a primitive depends on a state not shown in pseudocode (e.g., `$slug`, `$REPO_ROOT`, `$REPO_DIR`), it's because the variable was set earlier in the same phase (see each Phase section's Setup).
 
@@ -461,7 +479,7 @@ _Source: <reviewer-name>_
 
 ### Logging
 
-Each iteration appends a YAML-fenced block to `research/features/<slug>/review-log.md`:
+Each iteration appends a YAML-fenced block to `"$REVIEW_LOG"` (`$REPO_ROOT/research/features/<slug>/review-log.md` — absolute, set after kickoff):
 
 ```yaml
 ---
