@@ -211,7 +211,7 @@ If divergence between the two outputs surfaces a real disagreement (a finding pr
 When the invoking prompt contains `mode: "audit-only"`:
 
 1. **SKIP the PR Inline-Comment Mode section entirely** — do not detect PRs, do not dispatch `reviewer` subagent.
-2. Still write the local validation report to `research/features/<slug>/review-log.md` if `slug=<slug>` is also provided (otherwise the legacy path).
+2. Still write the local validation report. When `slug=<slug>` is provided, write to `research/features/<slug>/validator-report-pass-<N>.md` (where `<N>` is the iteration counter, also provided in the prompt) — mirrors the per-pass artifact pattern used by `architect-review`. Do NOT write to `research/features/<slug>/review-log.md` — that file is the orchestrator's machine-parseable YAML iteration log and concurrent writes from validator + orchestrator can corrupt its fix-attempt counter blocks. When no `slug` is provided, fall back to the legacy `research/reviews/<feature>-code-review.md` path.
 3. Append a STRICT JSON summary to stdout as the sole structured output:
 
 ```json
