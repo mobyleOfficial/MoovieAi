@@ -32,6 +32,8 @@ These rules apply when working inside the `moovie/` submodule. They are enforced
 
 These rules apply when working inside the `backend/` submodule. They are enforced by the `backend-implementer` agent and the `reviewers/architecture` sub-reviewer.
 
+(Scope column added for backend rules to disambiguate submodule vs. subdirectory enforcement.)
+
 | Rule | Scope | Enforcement |
 |------|-------|-------------|
 | [backend-architecture](backend-architecture.md) | `backend/` submodule | `backend-implementer` agent + reviewer architecture sub-reviewer |

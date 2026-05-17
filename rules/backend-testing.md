@@ -12,13 +12,14 @@ Applies to: `backend/src/test/kotlin/`. Aligns with `rules/backend-architecture.
 - `data/remote/TmdbDataSourceImplTest.kt` tests `data/remote/TmdbDataSourceImpl.kt`
 - `data/remote/MappersTest.kt` tests `data/remote/Mappers.kt`
 
-One test class per production class. File naming: `*Test.kt`. No test directory exists yet in `backend/`; create it as `backend/src/test/kotlin/org/mobyle/` before adding test files.
+One test class per production class. File naming: `*Test.kt`. The test tree is prescribed to mirror `main/` exactly; create `backend/src/test/kotlin/org/mobyle/` before adding test files (no `src/test/kotlin/` exists today).
 
 ## Unit Tests
 
 - Use case tests and mapper tests use plain JUnit 5 (no Ktor harness needed); `build.gradle.kts` already enables `useJUnitPlatform()`
+- Before writing unit tests, add an explicit `testImplementation(kotlin("test"))` (which brings `kotlin-test-junit5`) or an explicit JUnit Jupiter dep alongside MockK to avoid silent classpath gaps — `ktor-server-tests:2.3.0` provides transitives that may not resolve depending on Gradle classpath
 - Use cases call `runBlocking` internally, so tests can call them synchronously without coroutine wrappers
-- Mock injected repository/datasource dependencies via MockK (`val repository = mockk<MoviesRepository>()`) — add MockK to `build.gradle.kts` test deps (`testImplementation("io.mockk:mockk:<version>")`) before writing use-case tests
+- Mock injected repository/datasource dependencies via MockK (`val repository = mockk<MoviesRepository>()`) — add MockK to `build.gradle.kts` test deps (`testImplementation("io.mockk:mockk:1.13.13")  // or latest 1.13.x from Maven Central`) before writing use-case tests
 - Each public function gets at least 1 test covering the happy path and at least 1 covering the failure path (e.g. empty result, datasource exception)
 
 Example use-case test shape:
@@ -30,37 +31,41 @@ class GetTrendingMoviesTest {
     @Test
     fun `returns movie listing from repository`() {
         val expected = MovieListing(totalPages = 1, totalResults = 1, movies = listOf(/* fixture */))
-        every { runBlocking { repository.getTrendingMovies(1) } } returns expected
+        coEvery { repository.getTrendingMovies(1) } returns expected
         assertEquals(expected, useCase(1))
     }
 
     @Test
     fun `propagates repository exception`() {
-        every { runBlocking { repository.getTrendingMovies(any()) } } throws RuntimeException("fail")
+        coEvery { repository.getTrendingMovies(any()) } throws RuntimeException("fail")
         assertThrows<RuntimeException> { useCase(1) }
     }
 }
 ```
 
+Note: use `coEvery { ... }` (not `every { runBlocking { ... } }`) for suspend-function stubs — MockK throws `MockKException: Missing calls inside every { } block` with the `runBlocking` form. Because production use-case `invoke` functions call `runBlocking` internally, the test body itself does not need a coroutine wrapper.
+
 ## Route Tests
 
-Use Ktor's `testApplication { ... }` harness (provided by `ktor-server-tests:2.3.0`). Override Koin modules in the test application to inject test doubles:
+Use Ktor's `testApplication { ... }` harness (provided by `ktor-server-tests:2.3.0`). Because `configureKoin()` installs `dataModule` which throws `IllegalStateException` if `TMDB_API_KEY` is unset (lazily on first request), Koin must be replaced with a test module BEFORE `testApplication` starts — not inside `application { }`:
 
 ```kotlin
 @Test
-fun `GET movies trending returns 200`() = testApplication {
-    application {
-        configureKoin() // install Koin
-        configureRouting()
+fun `GET trending movies returns 200`() {
+    stopKoin()  // tear down any previously started Koin instance
+    startKoin {
+        modules(testDataModule)  // test module overriding dataModule; provides mocked TmdbDataSource
     }
-    // Override dataModule with a test module before starting:
-    // startKoin { modules(testDataModule) }
-    val response = client.get("/movies/trending")
-    assertEquals(HttpStatusCode.OK, response.status)
+    testApplication {
+        // Do NOT call configureKoin() here — Koin is already running with test doubles
+        application { configureRouting(); configureStatusPages() }
+        val response = client.get("/movies/trending?page=1")
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
 }
 ```
 
-Inject test doubles by providing a test-only Koin module that replaces `dataModule` with mocked datasources. Keep route tests focused on HTTP contract (status codes, response shape) — not domain logic.
+Where `testDataModule` is a Koin module that binds `TmdbDataSource`, all `*Repository` implementations, and all use cases with MockK doubles (or in-memory stubs) so no real TMDB call is made. Keep route tests focused on HTTP contract (status codes, response shape) — not domain logic.
 
 ## TMDB Mocking
 

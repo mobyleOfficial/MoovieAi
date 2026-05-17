@@ -6,23 +6,24 @@ Applies to: `backend/` submodule. Kotlin 2.0.20 + Ktor 2.3.0 + Koin 3.5.6 (per `
 
 Source root: `backend/src/main/kotlin/org/mobyle/`. Sub-packages:
 
-- `org.mobyle/Main.kt` — entry point: `embeddedServer(Netty, ...)` + inline `configure*()` functions; no separate `Application.kt`
-- `org.mobyle/routing/` — Route extension functions, one file per resource (e.g. `MoviesRouting.kt`, `ProfileRouting.kt`, `ActivitiesRouting.kt`)
-- `org.mobyle/di/` — `appModule` (use-case bindings) + `Utils.kt` (the `injection<T>()` helper)
-- `org.mobyle/model/` — Listing/wrapper response types serialized to JSON responses (e.g. `MovieListing`, `MovieReviewListing`)
-- `org.mobyle/domain/model/` — Internal domain types (e.g. `Movie`, `MovieDetail`, `Genre`)
-- `org.mobyle/domain/repository/` — Repository interfaces consumed by use cases
-- `org.mobyle/domain/usecase/` — Use case classes; sub-packages by feature (`movies/`, `profile/`, `activities/`)
-- `org.mobyle/data/repository/` — Repository implementations (delegate to `TmdbDataSource`)
-- `org.mobyle/data/remote/` — `TmdbDataSource` interface, `TmdbDataSourceImpl`, and `Mappers.kt` (TMDB DTO → domain)
-- `org.mobyle/data/remote/model/` — TMDB DTO types (`@Serializable` data classes with `@SerialName`)
-- `org.mobyle/data/di/` — `dataModule`: `HttpClient`, `TmdbDataSource`, and repository `single {}` bindings
+- `Main.kt` — entry point: `embeddedServer(Netty, ...)` + inline `configure*()` functions; no separate `Application.kt`
+- `routing/` — Route extension functions, one file per resource (e.g. `MoviesRouting.kt`, `ProfileRouting.kt`, `ActivitiesRouting.kt`)
+- `di/` — `appModule` (use-case bindings) + `Utils.kt` (the `injection<T>()` helper)
+- `model/` — Listing/wrapper response types serialized to JSON responses (e.g. `MovieListing`, `MovieReviewListing`)
+- `domain/model/` — Internal domain types (e.g. `Movie`, `MovieDetail`, `Genre`)
+- `domain/repository/` — Repository interfaces consumed by use cases
+- `domain/usecase/` — Use case classes; sub-packages by feature (`movies/`, `profile/`, `activities/`)
+- `data/repository/` — Repository implementations (delegate to `TmdbDataSource`)
+- `data/remote/` — `TmdbDataSource` interface, `TmdbDataSourceImpl`, and `Mappers.kt` (TMDB DTO → domain)
+- `data/remote/model/` — TMDB DTO types (`@Serializable` data classes with `@SerialName`)
+- `data/di/` — `dataModule`: `HttpClient`, `TmdbDataSource`, and repository `single {}` bindings
 
-`backend/src/test/kotlin/org/mobyle/` mirrors `main/` exactly.
+The test tree is prescribed to mirror `main/` exactly; create `backend/src/test/kotlin/org/mobyle/` before adding test files (no `src/test/kotlin/` exists today).
 
 ## Routing
 
 - One routing file per top-level resource path; the function is an extension on `Route`
+- `configureRouting()` in `Main.kt` installs `ContentNegotiation` (JSON) BEFORE opening the `routing { }` block — an agent that omits this install will produce endpoints that cannot serialize responses; do not move or skip it
 - All routes registered inside `configureRouting()` in `Main.kt` via `routing { getMoviesRouting(); ... }`
 - Dependencies retrieved with the custom `injection<T>()` helper (defined in `di/Utils.kt`) rather than bare `by inject()`, due to a Ktor 2.x / Koin 3.x compatibility issue; do not change this pattern
 - Each route validates inputs, calls a use case directly via `invoke`, and returns `call.respond(...)` with a typed body
@@ -50,12 +51,12 @@ fun Route.getMoviesRouting() {
   - `dataModule` (`data/di/DataModule.kt`) — `single {}` bindings for `HttpClient`, `TmdbDataSource`, and all `*Repository` implementations
   - `appModule` (`di/AppModule.kt`) — `factory {}` bindings for every use case class; use cases receive repository via constructor
 - Routes use `by injection<T>()` (the custom helper in `di/Utils.kt`), not `by inject()` directly
-- TMDB API key read from `System.getenv("TMDB_API_KEY")` inside `dataModule`; throws `IllegalStateException` at startup if unset — never hard-coded
+- TMDB API key read from `System.getenv("TMDB_API_KEY")` inside `dataModule`; at startup `Main.kt` logs a warning if `TMDB_API_KEY` is unset but does not abort. The `IllegalStateException` is thrown lazily the first time Koin resolves `HttpClient` (i.e., first inbound request to a movies route). New code must not suppress or catch this exception upstream — never hard-coded
 - No use of `ktor.application.conf` / `environment.config` — all secrets are environment variables
 
 ## Error Handling
 
-- A single catch-all `StatusPages` block in `Main.kt` → `configureStatusPages()` maps every `Throwable` to HTTP 500 with a JSON body `{ "error": "Internal Server Error", "message": "<cause.message>" }`
+- A single catch-all `StatusPages` block in `Main.kt` → `configureStatusPages()` maps every `Throwable` to HTTP 500 with a JSON body `{ "error": "Internal Server Error", "message": "<cause.message>" }`; if `cause.message` is null the message field reads `"Unknown error"`
 - No domain-specific exceptions exist yet; the pattern to follow when introducing them:
   - Define named exception classes (e.g. `MovieNotFoundException`, `TmdbRateLimitedException`)
   - Add typed `exception<MovieNotFoundException> { call, _ -> call.respond(HttpStatusCode.NotFound, ...) }` handlers inside `StatusPages` — never `try/catch` inside route bodies
@@ -64,7 +65,7 @@ fun Route.getMoviesRouting() {
 
 ## TMDB Integration
 
-- Single `HttpClient(CIO)` registered as a Koin `single` in `dataModule`; Bearer token and base URL configured globally via `defaultRequest { url("https://api.themoviedb.org/3/"); headers.append(Authorization, "Bearer $apiKey") }`
+- Single `HttpClient(CIO)` registered as a Koin `single` in `dataModule`; Bearer token and base URL configured globally via `defaultRequest { url("https://api.themoviedb.org/3/"); headers.append(HttpHeaders.Authorization, "Bearer $apiKey") }`
 - All TMDB HTTP calls are encapsulated in `TmdbDataSourceImpl`; use cases and repositories never call `HttpClient` directly
 - TMDB DTOs live in `data/remote/model/TmdbResponses.kt` — all `@Serializable` with `@SerialName` for snake_case fields
 - Mapper extension functions in `data/remote/Mappers.kt` convert TMDB DTOs to domain/model types; repositories call `.toDomain()` before returning results
