@@ -41,3 +41,37 @@ Write review document with:
 - **Blockers** if rejected (required changes)
 - **Recommendations** if approved (implementation guidance, affected files/modules)
 - **Cross-Repo Impact** — Does this touch both moovie and backend? What's the API contract?
+
+## Audit-Only Mode
+
+When the invoking prompt contains `mode: "audit-only"`:
+
+1. **DO NOT write the decision file to `research/reviews/`.** Instead, write a per-pass artifact at `research/features/<slug>/architect-review-pass-<N>.md` where `<slug>` is provided in the prompt and `<N>` is the iteration counter (also provided).
+2. Return STRICT JSON to stdout as the sole structured output:
+
+```json
+{
+  "decision": "APPROVED" | "APPROVED_WITH_CONDITIONS" | "REJECTED",
+  "summary": "<one-paragraph rationale>",
+  "blockers": [
+    {"criterion": "<which review criterion>", "issue": "<what's wrong>", "fix": "<what spec must change>"}
+  ],
+  "recommendations": [
+    {"area": "<what>", "guidance": "<concrete advice>"}
+  ],
+  "cross_repo_impact": "<sentence describing moovie/backend split or 'none'>",
+  "findings": [
+    {
+      "severity": "critical" | "high" | "medium" | "low",
+      "category": "architecture" | "security" | "performance" | "ecosystem-fit" | "feasibility",
+      "title": "<short>",
+      "explanation": "<why this is a problem>",
+      "suggestion": "<concrete fix>"
+    }
+  ]
+}
+```
+
+The `findings` array mirrors `reviewer`'s schema so callers can merge findings across reviewers uniformly.
+
+Default behavior unchanged.

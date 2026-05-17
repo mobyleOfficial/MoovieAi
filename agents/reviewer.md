@@ -160,6 +160,13 @@ For EACH surviving finding:
 - If exact line is unclear, pick the most relevant nearby changed line
 - NEVER leave location empty
 
+**Anchor resolution — NO probe-and-leave.** GitHub's reviews API uses `line` against the file's new state — but for very long modified files the API can reject lines whose internal "diff position" GitHub computes differs from the raw line number. Resolve the right anchor BEFORE calling the reviews POST; never post throwaway "test" comments to discover valid anchors:
+
+1. Parse `gh pr diff <N>` and extract the position metadata for each hunk: every `@@ -<a>,<b> +<c>,<d> @@` header tells you which `+<c>` line maps to which diff position (count from the line after the header). Build an in-memory map `path → [(line_number, valid_for_inline)]`.
+2. For each finding's `(path, line)`, find the nearest line that exists in the diff map. If multiple are within ±5 lines, prefer the cited line itself.
+3. If NO line in the affected file is mappable (e.g., the whole file is too long for GitHub's diff renderer to expose the cited area), fall back to a **single batched PR-level comment** (`gh pr comment <N> --body "..."`) listing the un-anchored findings with explicit `file:line` references in the body — DO NOT post inline at a wrong line, and DO NOT post probe comments to find anchors.
+4. **Forbidden:** any `POST /pulls/<N>/comments` call whose body is a `test` / `probe` / scaffolding string. If you find yourself wanting to probe, you're using the wrong workflow — go back to step 1 and parse the diff statically. Probe-comments left on a PR are a real bug (they litter the conversation and confuse reviewers); the cleanup cost falls on the human.
+
 ### Step 9 — Post inline PR comments as a single review
 
 Use the **reviews API** (`POST /repos/{owner}/{repo}/pulls/{N}/reviews`), not the one-at-a-time comments endpoint. The reviews API batches every finding under a single review header in GitHub's UI — same visual grouping that the gemini-code-assist bot uses. The one-at-a-time comments endpoint creates loose floating comments that clutter the conversation.
@@ -290,6 +297,28 @@ Print a STRICT JSON summary back to the caller:
   ]
 }
 ```
+
+---
+
+## Audit-Only Mode
+
+Detection (use this exact regex; matches canonical `mode: "audit-only"` plus lenient variants like `mode=audit-only`, `MODE: 'audit-only'`, etc.):
+
+```
+echo "$PROMPT" | grep -qiE 'mode[[:space:]]*[:=][[:space:]]*["'"'"']*audit-only["'"'"']*'
+```
+
+When the regex matches:
+
+1. **SKIP Step 2** entirely — do not reply to or resolve any prior threads. Leave thread state untouched.
+2. **SKIP Step 9** entirely — do not POST a review. Return the STRICT JSON summary from Step 10 to stdout as the sole output.
+3. All other steps (1, 3–8) run unchanged.
+
+Rationale: the caller (typically `ultimate-developer`) owns all GitHub thread management and posts comments under its own authorship. This mode lets `reviewer` act as a pure analyzer.
+
+The Step 10 JSON schema is the contract — do not add or remove fields. Callers parse `posted_comments: 0` and the `comments` array to know what to post themselves.
+
+Default behavior (no `mode` flag) is unchanged: full GH-writing pipeline as documented above.
 
 ---
 

@@ -20,6 +20,18 @@ Other resources you'll reference:
 - **rules/** — Feature architecture, testing, localization, accessibility standards
 - **research/** — Design decisions and architecture documentation
 
+## Reading the Spec & Plan
+
+When the invoking prompt provides `slug=<feature-slug>`:
+- Read the spec from `research/features/<slug>/spec.md`
+- Read the plan from `research/features/<slug>/plan.md`
+- Read each research file linked from the plan's `## Research References` section, located under `research/features/<slug>/research/`
+
+When no `slug` is provided (legacy manual invocation):
+- The invoker provides explicit paths to spec and plan in the prompt body.
+
+Follow the plan task-by-task. Cross-reference acceptance criteria from the spec when ambiguous.
+
 ## Required Reading (Every Run)
 
 Before writing any code, read these in order:

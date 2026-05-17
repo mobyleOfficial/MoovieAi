@@ -156,13 +156,16 @@ Auto-discovered Markdown agent definitions (no registration needed). Dispatched 
 - `architect-review` — reviews specs for ecosystem feasibility
 - `implementer-tester` — implements + tests features inside the `moovie` submodule
 - `validator` — read-only quality + correctness check across submodules; surfaces inline PR comments
+- `ultimate-developer` — autonomous end-to-end orchestrator; drives spec → plan → impl phases via PR review loops; invoke via `/ultimate-feature`
+- `researcher` — per-topic research sub-agent dispatched by `ultimate-developer` during plan phase
+- `backend-implementer` — Kotlin/Ktor mirror of `implementer-tester`; implements features in the `backend/` submodule
 
 **Reviewer agents** (PR review):
 - `reviewer` — orchestrator; dispatches the three sub-reviewers, dedupes, posts one batched GitHub review with severity badges
 - `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` — scoped sub-reviewers, one domain each
 
 ### `commands/`
-Slash commands invoked via `/<name>`. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent.
+Slash commands invoked via `/<name>`. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent; `/ultimate-feature` invokes the `ultimate-developer` agent for autonomous end-to-end feature delivery.
 
 ### `.claude/hooks/`
 Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rules/` is backed by a hook here — see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table.
@@ -209,6 +212,16 @@ Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rule
 - Verify `TMDB_API_KEY` in backend environment
 - Review backend logs: `./gradlew run` (verbose output)
 - Check frontend logs: Flutter DevTools or `flutter logs`
+
+### Autonomous Feature Pipeline (`/ultimate-feature`)
+
+`/ultimate-feature "<request>"` invokes the `ultimate-developer` agent. After a single kickoff brainstorm, the agent autonomously:
+1. Writes the spec, opens a PR, drives a review loop, merges
+2. Researches resources + prior art, writes the plan, opens a PR, drives a review loop, merges
+3. Implements code in the relevant submodule(s), opens a PR per submodule, drives review loops, merges
+4. Bumps submodule refs if cross-repo
+
+All phase docs live under `research/features/<slug>/`. See `agents/ultimate-developer.md` and `research/features/ultimate-developer/spec.md` for the full design.
 
 ---
 
@@ -325,6 +338,7 @@ Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility
 **4. Slash commands** — invoked via `/<name>`, defined under `commands/`:
 - `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — scaffolding, feed into the `implementer-tester` agent
 - `/review-pr <PR#>` — runs the `reviewer` agent against a GitHub PR
+- `/ultimate-feature "<request>"` — runs the `ultimate-developer` agent for autonomous end-to-end feature delivery
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
