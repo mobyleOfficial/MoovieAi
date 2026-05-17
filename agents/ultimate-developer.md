@@ -66,11 +66,12 @@ Commit the kickoff file on the user's current branch (where the agent is running
 
 After kickoff: no more `AskUserQuestion` calls until escalation. All decisions autonomous.
 
-**Set `REVIEW_LOG` once after kickoff** (before entering any phase loop):
+**Set `REPO_ROOT` + `REVIEW_LOG` once after kickoff** (before entering ANY phase loop — Spec and Plan phases log too, not just Impl):
 ```bash
+REPO_ROOT="$(pwd)"  # meta-repo root, captured once for all phases — re-export in Impl phase ONLY if needed; do NOT shadow with a different value
 REVIEW_LOG="$REPO_ROOT/research/features/$slug/review-log.md"
 ```
-All log primitives (`log_iteration`, `log_findings`, `log_decision`, `increment_fix_attempts`, `reset_fix_attempts`) use `"$REVIEW_LOG"` as an absolute path. This is required because CWD shifts into submodule directories during the impl phase; a relative path would resolve inside the submodule and miss the file.
+All log primitives (`log_iteration`, `log_findings`, `log_decision`, `increment_fix_attempts`, `reset_fix_attempts`) use `"$REVIEW_LOG"` as an absolute path. This is required because CWD shifts into submodule directories during the impl phase; a relative path would resolve inside the submodule and miss the file. The Impl-phase "Before the loop" block in the Implementation Phase section re-uses this same `REPO_ROOT` (no re-assignment) for `cd "$REPO_ROOT"` restoration between iterations.
 
 ## Spec Phase
 
@@ -214,9 +215,11 @@ Behavior branches on `scope` collected at kickoff.
 
 ### Per-repo impl loop
 
-**Before the loop** (capture once, before iterating over repos):
+**Before the loop** (`REPO_ROOT` was already set at kickoff — see "Set REPO_ROOT + REVIEW_LOG once after kickoff" above; this is a no-op safety reassertion if PWD happens to still be the meta-repo root):
 ```bash
-REPO_ROOT="$(pwd)"  # meta-repo root — set ONCE before the loop; do NOT re-set inside iterations
+# REPO_ROOT was set at kickoff. We MUST still be at meta-repo root here (Spec/Plan phases never cd elsewhere).
+# Defensive check — abort if drifted, since the per-repo loop below depends on REPO_ROOT pointing to the meta-repo.
+[ "$(pwd)" = "$REPO_ROOT" ] || { echo "ESCALATE: CWD drifted from REPO_ROOT before impl phase" >&2; exit 1; }
 ```
 
 Repeat for each repo in scope (backend first if `both`):
