@@ -21,10 +21,15 @@ MoovieAi/
 ├── moovie/           # Git submodule: Flutter frontend app
 ├── backend/          # Git submodule: Kotlin/Ktor backend
 ├── research/         # Research docs, analysis, design docs
-├── plugins/          # Claude Code MCP plugins and servers
-├── rules/            # Linting, formatting, ecosystem policies
-├── skills/           # Custom Claude workflows (standardized documentation)
-├── agents/           # Custom Claude agents for specialized tasks
+├── plugins/          # Claude Code MCP servers (e.g. repo-management)
+├── rules/            # Ecosystem policies + lint rules
+├── patches/          # npm patches applied by patch-package on install
+├── .claude/commands/ # Slash commands (/new-usecase, /review-pr, /ultimate-feature, ...)
+├── agents/           # Pipeline + reviewer agents (auto-discovered Markdown)
+├── .claude/skills/   # Project-level Claude Code skills (auto-discovered)
+├── .claude/hooks/    # Pre/Post/SessionStart hooks enforcing rules
+├── .claude/CLAUDE.md # Claude/tooling-specific behavior (companion to this file)
+├── .mcp.json         # MCP server registry (repo-management + linear)
 └── CLAUDE.md         # This file
 ```
 
@@ -130,7 +135,7 @@ git commit -m "chore: update moovie submodule reference"
 Design docs, architecture decisions, API specs, performance analysis, user research. Reference these when understanding system-wide decisions or context for features.
 
 ### `plugins/`
-Claude Code MCP plugins and servers (e.g., repo-management). Register in `.claude/settings.json` to extend Claude's capabilities. Pre-registered and ready to use.
+Claude Code MCP servers (e.g. `repo-management`). Registered in `.mcp.json` at repo root — Claude Code loads them automatically each session. Bootstrap builds the TypeScript source to `plugins/repo-management/dist/`.
 
 ### `rules/`
 Linting configurations, formatter rules, and architecture policies organized into three categories:
@@ -155,6 +160,7 @@ Linting configurations, formatter rules, and architecture policies organized int
 - `backend/backend-implementation.md` — Kotlin code style
 - `backend/backend-testing.md` — Testing patterns
 
+<<<<<<< HEAD
 ### `skills/`
 Custom Claude workflows for scaffolding features and standardized documentation. Organized into three categories:
 
@@ -212,6 +218,37 @@ Validation hooks for code quality and architecture compliance. Organized into th
 - `backend/validate-kotlin-code.sh` — Validates Kotlin patterns
 
 Run automatically by agents via pre/post-tool-use and stop hooks. See [hooks/README.md](hooks/README.md) for details.
+=======
+### `.claude/skills/`
+Project-level Claude Code skills, auto-discovered each session. Use when implementing repetitive patterns or cross-repo concerns.
+
+**Available Skills:**
+- `moovie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
+- `setting-up-linear-mcp` — Configure Linear MCP and securely store token
+- `verify-docs-before-pr` — Documentation verification before opening a PR
+
+### `agents/`
+Auto-discovered Markdown agent definitions (no registration needed). Dispatched via the `Task` tool's `subagent_type` parameter.
+
+**Pipeline agents** (feature development):
+- `pm-spec` — writes feature specs / design docs
+- `architect-review` — reviews specs for ecosystem feasibility
+- `implementer-tester` — implements + tests features inside the `moovie` submodule
+- `validator` — read-only quality + correctness check across submodules; surfaces inline PR comments
+- `ultimate-developer` — autonomous end-to-end orchestrator; drives spec → plan → impl phases via PR review loops; invoke via `/ultimate-feature`
+- `researcher` — per-topic research sub-agent dispatched by `ultimate-developer` during plan phase
+- `backend-implementer` — Kotlin/Ktor mirror of `implementer-tester`; implements features in the `backend/` submodule
+
+**Reviewer agents** (PR review):
+- `reviewer` — orchestrator; dispatches the three sub-reviewers, dedupes, posts one batched GitHub review with severity badges
+- `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` — scoped sub-reviewers, one domain each
+
+### `.claude/commands/`
+Slash commands invoked via `/<name>`. Claude Code auto-discovers files from this path; no registration needed. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent; `/ultimate-feature` invokes the `ultimate-developer` agent for autonomous end-to-end feature delivery. (Repo-root `commands/` is NOT a Claude Code discovery path — files there are not callable as slash commands.)
+
+### `.claude/hooks/`
+Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rules/` is backed by a hook here — see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table.
+>>>>>>> origin/dev
 
 ---
 
@@ -255,6 +292,16 @@ Run automatically by agents via pre/post-tool-use and stop hooks. See [hooks/REA
 - Verify `TMDB_API_KEY` in backend environment
 - Review backend logs: `./gradlew run` (verbose output)
 - Check frontend logs: Flutter DevTools or `flutter logs`
+
+### Autonomous Feature Pipeline (`/ultimate-feature`)
+
+`/ultimate-feature "<request>"` invokes the `ultimate-developer` agent. After a single kickoff brainstorm, the agent autonomously:
+1. Writes the spec, opens a PR, drives a review loop, merges
+2. Researches resources + prior art, writes the plan, opens a PR, drives a review loop, merges
+3. Implements code in the relevant submodule(s), opens a PR per submodule, drives review loops, merges
+4. Bumps submodule refs if cross-repo
+
+All phase docs live under `research/features/<slug>/`. See `agents/ultimate-developer.md` and `research/features/ultimate-developer/spec.md` for the full design.
 
 ---
 
@@ -300,6 +347,8 @@ cd backend
 
 **Local Claude Config:** All `.claude/` configuration MUST use portable, relative paths. No global (`~/`) or absolute user paths. Enables config reuse across team. Validated on every prompt. See [rules/LOCAL_CLAUDE_CONFIG.md](rules/LOCAL_CLAUDE_CONFIG.md).
 
+**Docs Up To Date:** Every change affecting user-facing behavior, public interfaces, configuration, or directory structure MUST update the corresponding documentation (README.md, CLAUDE.md, subdir READMEs) in the same PR. Enforced by `.claude/hooks/check-docs-sync.sh` on `gh pr create` / `git push`. See [rules/DOCS_UP_TO_DATE.md](rules/DOCS_UP_TO_DATE.md).
+
 ## Conventions
 
 ### Commit Messages
@@ -321,7 +370,7 @@ Example: `fix: correct auth token expiry logic`
 - Release PRs target `main`
 - Use Conventional Commits format in PR title
 - No coauthors in PR descriptions
-- **Before opening PR:** Run `verify-docs-before-pr` skill to ensure README.md/CLAUDE.md are updated if code changes affect docs
+- **Docs sync is hook-enforced:** `.claude/hooks/check-docs-sync.sh` blocks `gh pr create` / `git push` when public-surface changes are missing matching doc updates — fix the docs before retrying. The `verify-docs-before-pr` skill is available for a manual pre-flight check but is not required.
 
 ### Submodule Operations
 Handled by `repo-management` MCP server:
@@ -348,6 +397,7 @@ Displays automatically in the bottom right. Helps identify when to compact conve
 
 At the start of each session, load these resources:
 
+<<<<<<< HEAD
 **1. Rules** — Organizational policies and architecture patterns:
 - **Critical policies (all development):**
   - [`rules/common/LOCAL_CLAUDE_CONFIG.md`](rules/common/LOCAL_CLAUDE_CONFIG.md) — portable relative paths in `.claude/` config
@@ -356,11 +406,18 @@ At the start of each session, load these resources:
   - [`rules/common/PYTHON_ENVS.md`](rules/common/PYTHON_ENVS.md) — local Python venv required
 - **Frontend-specific:** `rules/frontend/` (architecture, testing, UI, accessibility, localization)
 - **Backend-specific:** `rules/backend/` (architecture, implementation, testing)
+=======
+**1. Rules** — Organizational policies that govern all work (each backed by a hook):
+- [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use `Co-Authored-By` trailers in commits, single author always
+- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (`moovie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
+- [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` + `.mcp.json` config must use portable relative paths, no `~/` or absolute user paths
+- [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python `pip` / `uv` / `poetry` / `conda install` must run inside an active virtualenv
+- [`rules/DOCS_UP_TO_DATE.md`](rules/DOCS_UP_TO_DATE.md) — public-surface changes must update docs in the same PR (blocked by `check-docs-sync.sh` on `gh pr create` / `git push`)
+>>>>>>> origin/dev
 
-**2. Plugins** — MCP servers available in this project:
-- `repo-management` — Manage submodules, branches, PRs (configured in `.mcp.json`)
-- `linear` — Linear workspace integration (configured in `.mcp.json`)
+Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility`, `feature-architecture`, `feature-implementation`, `feature-testing`, `localization`, `ui-architecture`, `variable-naming`. See [`rules/README.md`](rules/README.md) for the full enforcement map.
 
+<<<<<<< HEAD
 **3. Skills** — Custom Claude workflows:
 - **Common:** `setting-up-linear-mcp`, `moovie-research-format`, `verify-docs-before-pr`
 - **Frontend:** `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`
@@ -372,18 +429,29 @@ At the start of each session, load these resources:
 - Use `/backend-implementer` for Kotlin/Ktor backend feature implementation
 - Use `/architect-review` for spec feasibility review
 - Use `/code-reviewer` for code quality validation
+=======
+**2. Plugins** — MCP servers registered in `.mcp.json`:
+- `repo-management` — manage submodules, branches, PRs
+- `linear` — Linear workspace integration (token in gitignored `.claude/settings.local.json`)
+
+**3. Skills** — auto-discovered from `.claude/skills/<name>/SKILL.md`:
+- `setting-up-linear-mcp` — configure Linear MCP and securely store the token
+- `moovie-research-format` — standardized format for design docs / architecture decisions / research
+- `verify-docs-before-pr` — manual docs check (the `check-docs-sync.sh` hook already blocks PRs / pushes that fall out of sync — invoke this skill only for a pre-flight self-check)
+
+**4. Slash commands** — invoked via `/<name>`, defined under `.claude/commands/`:
+- `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — scaffolding, feed into the `implementer-tester` agent
+- `/review-pr <PR#>` — runs the `reviewer` agent against a GitHub PR
+- `/ultimate-feature "<request>"` — runs the `ultimate-developer` agent for autonomous end-to-end feature delivery
+>>>>>>> origin/dev
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
 ### Linear MCP (First Time)
 
-If you don't have Linear MCP configured:
-1. Use skill: `setting-up-linear-mcp`
-2. Generate API token: https://linear.app/mobyle/settings/api
-3. Update `.claude/settings.json` + `.claude/settings.local.json`
-4. Restart Claude Code
+Run `/setting-up-linear-mcp` — guides secure project-level setup with workspace scoping + token storage.
 
-Default project: MOO (Moovie). Token stored securely in `.local.json` (gitignored).
+Default project: MOO (Moovie). Token stored in `.claude/settings.local.json` (gitignored).
 
 ---
 
@@ -392,7 +460,7 @@ Default project: MOO (Moovie). Token stored securely in `.local.json` (gitignore
 When working in child repos (moovie or backend):
 - Refer back to this CLAUDE.md for ecosystem context
 - Check `research/` for design decisions that affect your changes
-- Use plugins/ and skills/ resources for repeated tasks
+- Use `plugins/` and `.claude/skills/` resources for repeated tasks
 - Update submodule references in the meta-repo after merging changes
 - **Follow NO_COAUTHORS rule strictly** — single author on all commits
 - If adding new shared resources, document them here

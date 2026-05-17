@@ -4,23 +4,34 @@ Meta-repository for the Moovie ecosystem. Central hub for shared resources, AI-a
 
 ## Quick Start
 
-Clone with submodules:
+Clone with submodules and run the bootstrap script:
 ```bash
 git clone --recurse-submodules https://github.com/mobyleOfficial/MoovieAi
 cd MoovieAi
+./bootstrap.sh
 ```
+
+The bootstrap initializes submodules, installs root + plugin npm dependencies (re-applies the `linear-mcp` patch via `patch-package`), marks every `.claude/**/*.sh` script executable, and seeds `.claude/settings.local.json` + `.claude/task/pipeline-queue.json` from templates. Idempotent — safe to re-run.
+
+**Required system tools:** `git`, `npm`, `jq`, `gh`. The script aborts early if any are missing.
+
+After bootstrap, set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json` (gitignored) before using the Linear MCP server. See [`.claude/skills/setting-up-linear-mcp/SKILL.md`](.claude/skills/setting-up-linear-mcp/SKILL.md).
 
 ## Structure
 
 - **[moovie/](moovie)** — Flutter frontend (Android, iOS, Web)
 - **[backend/](backend)** — Kotlin/Ktor API server
 - **[research/](research)** — Design docs, API specs, architecture decisions
-- **[plugins/](plugins)** — Claude Code MCP servers and tools
-- **[rules/](rules)** — Linting, formatting, ecosystem policies
-- **[skills/](skills)** — Standardized workflows and documentation formats
-- **[agents/](agents)** — Custom Claude agents for specialized tasks
+- **[plugins/](plugins)** — Claude Code MCP servers (e.g. `repo-management`)
+- **[rules/](rules)** — Ecosystem policies (NO_COAUTHORS, AI_AGNOSTIC_SUBMODULES, DOCS_UP_TO_DATE, etc.) + lint rules
+- **[.claude/skills/](.claude/skills)** — Project-level Claude Code skills (auto-discovered)
+- **[.claude/hooks/](.claude/hooks)** — Pre/Post/Session hooks that enforce rules
+- **[.claude/CLAUDE.md](.claude/CLAUDE.md)** — Claude/tooling-specific behavior (companion to root `CLAUDE.md`)
+- **[agents/](agents)** — Pipeline agents (`pm-spec`, `architect-review`, `implementer-tester`, `validator`, `reviewer`)
+- **[.claude/commands/](.claude/commands)** — Slash commands (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`)
+- **[patches/](patches)** — npm patches applied by `patch-package` on install (e.g. `linear-mcp+1.2.0.patch`)
 
-See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete development guide.
+See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and complete development guide. See [`.claude/CLAUDE.md`](.claude/CLAUDE.md) for Claude Code tool preferences, hook expectations, and subagent dispatch rules.
 
 ## Claude Code Integration
 
@@ -48,22 +59,52 @@ Automates repository operations:
 - check-status              # Show which submodules are stale
 ```
 
-**Setup:** Plugin is pre-registered in `.claude/settings.json`. No additional config needed.
+**Setup:** Plugin is pre-registered in `.mcp.json` (loaded automatically by Claude Code at session start). Bootstrap builds the TypeScript source to `plugins/repo-management/dist/index.js`. No additional config needed.
 
 ## Linear MCP Integration
 
-This repo supports **Linear MCP** for AI-assisted issue management:
+Connect Linear to Claude Code for issue management in development sessions.
 
-```bash
-# Configure Linear in Claude Code (one-time setup per developer)
-- Generate API token at: https://linear.app/mobyle/settings/api
-- Update .claude/settings.json with workspace/project IDs
-- Store token in .claude/settings.local.json (gitignored)
-```
+**Setup:** Run `/setting-up-linear-mcp` for one-time configuration. Default project: MOO (Moovie).
 
-**Setup Guide:** Use the `setting-up-linear-mcp` skill in Claude Code for step-by-step configuration.
+### Pipeline Agents
 
-**Default project:** MOO (Moovie) — all Claude sessions default to this project.
+Feature-development pipeline lives in [`agents/`](agents). Dispatched via the `Task` tool (Markdown files are auto-discovered — no registration in `settings.json`):
+
+| Agent | Role |
+|-------|------|
+| `pm-spec` | Writes the feature spec / design doc |
+| `architect-review` | Reviews spec for feasibility against ecosystem architecture |
+| `implementer-tester` | Implements the feature (Flutter/Dart) + tests inside the `moovie` submodule |
+| `validator` | Read-only quality + correctness check across submodules; surfaces inline PR comments |
+| `reviewer` | Multi-pass PR reviewer; aggregates `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` into one batched GitHub review |
+
+### Slash Commands
+
+Scaffolding + review shortcuts in [`.claude/commands/`](.claude/commands):
+
+- `/new-usecase <feature> <usecase> [params] [response]` — scaffold a domain use case
+- `/new-datasource <feature> <datasource> <type>` — scaffold a data-layer data source
+- `/new-repository <feature> <repository>` — scaffold a repository contract + implementation
+- `/new-ui-module <module>` — scaffold a UI module under `ui/`
+- `/review-pr <PR-number>` — run the `reviewer` agent against a GitHub PR
+
+### Hooks
+
+`.claude/settings.json` wires `PreToolUse` + `PostToolUse` + `SessionStart` hooks that enforce repo rules — they block the offending tool call before it runs:
+
+| Event | Hook | Blocks on |
+|-------|------|-----------|
+| `SessionStart` | `session-start.sh` | (informational) summarizes rules / skills / MCP servers |
+| `UserPromptSubmit` | `validate-config.sh` | non-portable paths (`~/`, `/Users/…`) in `.claude/settings*.json` or `.mcp.json` |
+| `PreToolUse:Bash` | `block-destructive-commands.sh` | `rm -rf`, `git push --force`, `git reset --hard`, etc. |
+| `PreToolUse:Bash` | `check-coauthor.sh` | `git commit` containing `Co-Authored-By` trailers |
+| `PreToolUse:Bash` | `check-python-env.sh` | `pip` / `uv pip` / `poetry` / `conda install` outside an active virtualenv |
+| `PreToolUse:Bash` | `check-submodule-ai.sh` | `git commit` / `git push` when a submodule contains AI-tooling files |
+| `PreToolUse:Bash` | `check-docs-sync.sh` | `gh pr create` / `git push` when critical files change without a doc update |
+| `PostToolUse:Edit\|Write` | `format-code.sh` | (formatter) runs `dart format` on `.dart` files |
+
+Pipeline agents add per-agent hooks (`validate-spec.sh`, `validate-implementation.sh`, `validate-localization.sh`, `validate-module-structure.sh`, `verify-di-registration.sh`, `regenerate-generated-files.sh`, `pipeline-coordinator.sh`, `human-gate-review.sh`, `enforce-path-restrictions.sh`, `block-cross-feature-data-imports.sh`) in their frontmatter. All hooks live in `.claude/hooks/`.
 
 ## Frontend (Moovie)
 
@@ -97,10 +138,23 @@ Server runs on `http://localhost:8080`. See [backend/README.md](backend/README.m
 - **Commits:** Conventional Commits format (`fix:`, `feat:`, `chore:`, `doc:`)
 - **Branches:** `feature/*`, `release/*`, `fix/*`
 - **PRs:** Auto-target `develop` (feature/fix) or `main` (release)
-- **Authors:** Single author per commit — no Co-Authored-By trailers
 - **Template:** Standardized PR template with Task, Summary, Changes, Technical Details, Testing
 
-See [CLAUDE.md](CLAUDE.md) § Critical Rules for enforcement details.
+### Binding Rules
+
+Project-wide rules live in [`rules/`](rules). Each rule is enforced by a hook listed in the [Hooks](#hooks) section above.
+
+| Rule | Summary |
+|------|---------|
+| [NO_COAUTHORS](rules/NO_COAUTHORS.md) | Single author per commit. No `Co-Authored-By` trailers in commits / PRs / issues. |
+| [AI_AGNOSTIC_SUBMODULES](rules/AI_AGNOSTIC_SUBMODULES.md) | Child repos (`moovie`, `backend`) must remain AI-agnostic. No `CLAUDE.md`, `.claude/`, `.cursorrules`, `copilot-instructions.md`, `AGENTS.md` inside submodules. |
+| [LOCAL_CLAUDE_CONFIG](rules/LOCAL_CLAUDE_CONFIG.md) | All `.claude/` + `.mcp.json` config uses portable relative paths. No `~/` or absolute user paths. |
+| [PYTHON_ENVS](rules/PYTHON_ENVS.md) | All Python `pip` / `uv` / `poetry` / `conda install` calls must run inside an active virtualenv. |
+| [DOCS_UP_TO_DATE](rules/DOCS_UP_TO_DATE.md) | Public-surface changes must update docs in the same PR. Enforced by `check-docs-sync.sh` on `gh pr create` / `git push`. |
+
+Lint rules (Flutter-side, applied by `implementer-tester` agent): [`accessibility`](rules/accessibility.md), [`feature-architecture`](rules/feature-architecture.md), [`feature-implementation`](rules/feature-implementation.md), [`feature-testing`](rules/feature-testing.md), [`localization`](rules/localization.md), [`ui-architecture`](rules/ui-architecture.md), [`variable-naming`](rules/variable-naming.md).
+
+See [CLAUDE.md](CLAUDE.md) § Critical Rules for enforcement details and [rules/README.md](rules/README.md) for the enforcement map.
 
 ## Research Documentation
 
@@ -122,7 +176,7 @@ status: draft|approved|archived
 ## Next Steps
 ```
 
-See [skills/moovie-research-format/](skills/moovie-research-format/SKILL.md) for full specification.
+See [.claude/skills/moovie-research-format/](.claude/skills/moovie-research-format/SKILL.md) for full specification.
 
 ## Submodule Workflows
 

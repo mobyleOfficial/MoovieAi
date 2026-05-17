@@ -43,11 +43,16 @@ Every feature spec should include:
 
 ## Where to Store Specs
 
-- **Feature specs:** `research/specs/` (or similar subdirectory for organization)
-- **Design decisions:** `research/decisions/` (RFCs, architecture decisions)
-- **Analysis:** `research/analysis/` (performance, user research, etc.)
+When the invoking prompt provides `slug=<feature-slug>`:
+- Default path: `research/features/<slug>/spec.md`
+- This is the path ultimate-developer uses; it co-locates spec + plan + research + review-log per feature.
 
-Use descriptive filenames with dates if helpful (e.g., `research/specs/movie-search-20260515.md`)
+When no `slug` is provided (legacy/manual invocation):
+- Use the original convention: `research/specs/<feature>.md` for feature specs
+- `research/decisions/` for RFCs / architecture decisions
+- `research/analysis/` for performance / user research
+
+Use descriptive filenames with dates if helpful when in legacy mode (e.g., `research/specs/movie-search-20260515.md`).
 
 ## Example Structure
 

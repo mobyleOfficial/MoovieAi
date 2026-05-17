@@ -1,236 +1,218 @@
-import { execSync } from "child_process";
+#!/usr/bin/env node
+
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { execFileSync } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
 
-interface Tool {
-  name: string;
-  description: string;
-  inputSchema: {
-    type: string;
-    properties: Record<string, unknown>;
-    required: string[];
-  };
-}
-
-// Get the root directory (MoovieAi/)
 const ROOT_DIR = process.cwd();
 
-// Tool implementations
-const tools: Record<string, (args: Record<string, string>) => Promise<string>> =
-  {
-    "sync-submodule": async (args) => {
-      const { name } = args;
-      if (!name) throw new Error("name parameter required");
+type ToolHandler = (args: Record<string, string>) => Promise<string>;
 
-      const submodulePath = path.join(ROOT_DIR, name);
+// Run a command with argv-array form (no shell). Avoids injection from
+// any user-supplied argument that ends up in the command line.
+function run(cmd: string, argv: string[]): string {
+  return execFileSync(cmd, argv, {
+    cwd: ROOT_DIR,
+    encoding: "utf-8",
+    stdio: "pipe",
+  });
+}
 
-      // Verify submodule exists
-      try {
-        await fs.access(submodulePath);
-      } catch {
-        throw new Error(`Submodule '${name}' not found at ${submodulePath}`);
-      }
+// Switch to the project's base development branch (develop, with `dev` as a
+// historical fallback) and pull. Used by both feature- and release-branch
+// creation so changes to the strategy land in one place.
+function checkoutDevBaseAndPull(): void {
+  try {
+    run("git", ["checkout", "develop"]);
+  } catch {
+    run("git", ["checkout", "dev"]);
+  }
+  run("git", ["pull", "--ff-only"]);
+}
 
-      try {
-        // Fetch latest from remote
-        execSync("git submodule update --remote", {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+// Submodule name allowlist — guards branch-name and path arguments that
+// otherwise could be abused for git option/flag injection.
+const SUBMODULES = new Set(["moovie", "backend"]);
+function assertSubmodule(name: string): void {
+  if (!SUBMODULES.has(name)) {
+    throw new Error(
+      `Invalid submodule '${name}'. Allowed: ${[...SUBMODULES].join(", ")}`
+    );
+  }
+}
 
-        // Get current commit hash
-        const commit = execSync(
-          `cd ${name} && git rev-parse --short HEAD`,
-          {
-            cwd: ROOT_DIR,
-            encoding: "utf-8",
-          }
-        ).trim();
+// Git ref format: refuse names containing whitespace, control chars, or
+// characters reserved by git (`~`, `^`, `:`, `?`, `*`, `[`, `\`, `..`,
+// leading/trailing `/`). Letters, digits, `-`, `_`, `.`, `/` only.
+function assertGitRef(name: string, label: string): void {
+  if (!name || !/^[A-Za-z0-9._/-]+$/.test(name) || name.includes("..") ||
+      name.startsWith("-") || name.startsWith("/") || name.endsWith("/")) {
+    throw new Error(`Invalid ${label} '${name}'`);
+  }
+}
 
-        // Stage the submodule reference change
-        execSync(`git add ${name}`, { cwd: ROOT_DIR, stdio: "pipe" });
+const handlers: Record<string, ToolHandler> = {
+  "sync-submodule": async (args) => {
+    const { name } = args;
+    if (!name) throw new Error("name parameter required");
+    assertSubmodule(name);
 
-        // Check if there are changes to commit
-        const status = execSync("git status --porcelain", {
-          cwd: ROOT_DIR,
-          encoding: "utf-8",
-        });
+    const submodulePath = path.join(ROOT_DIR, name);
+    try {
+      await fs.access(submodulePath);
+    } catch {
+      throw new Error(`Submodule '${name}' not found at ${submodulePath}`);
+    }
 
-        if (!status.includes(name)) {
-          return `✓ Submodule '${name}' already up to date (${commit})`;
-        }
+    run("git", ["submodule", "update", "--remote", "--", name]);
 
-        // Commit with conventional format
-        execSync(
-          `git commit -m "chore: update ${name} submodule reference"`,
-          {
-            cwd: ROOT_DIR,
-            stdio: "pipe",
-          }
-        );
+    const commit = run("git", [
+      "-C",
+      name,
+      "rev-parse",
+      "--short",
+      "HEAD",
+    ]).trim();
 
-        return `✓ Synced '${name}' to ${commit}`;
-      } catch (error) {
-        throw new Error(
-          `Failed to sync submodule '${name}': ${(error as Error).message}`
-        );
-      }
-    },
+    run("git", ["add", "--", name]);
 
-    "create-feature-branch": async (args) => {
-      const { name } = args;
-      if (!name) throw new Error("name parameter required");
+    // `git status --porcelain -- <submodule>` reports a non-empty string when
+    // the submodule's working tree is dirty (uncommitted changes inside) even
+    // if the meta-repo's pointer didn't move. That would lead `git commit` to
+    // fail since nothing is staged in the meta-repo. Use `git diff --cached
+    // --quiet --` to ask the precise question: was the submodule pointer
+    // staged for commit? Exit 0 = no staged change, 1 = staged change.
+    let pointerStaged = false;
+    try {
+      run("git", ["diff", "--cached", "--quiet", "--", name]);
+    } catch {
+      pointerStaged = true;
+    }
 
-      try {
-        // Sync first
-        await tools["sync-submodule"]({
-          name: "moovie",
-        });
-        await tools["sync-submodule"]({
-          name: "backend",
-        });
+    if (!pointerStaged) {
+      return `✓ Submodule '${name}' already up to date (${commit})`;
+    }
 
-        // Checkout develop
-        execSync("git checkout develop || git checkout dev", {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+    // Commit only the submodule pointer; do not sweep unrelated staged files.
+    run("git", [
+      "commit",
+      "-m",
+      `chore: update ${name} submodule reference`,
+      "--",
+      name,
+    ]);
 
-        // Pull latest
-        execSync("git pull", { cwd: ROOT_DIR, stdio: "pipe" });
+    return `✓ Synced '${name}' to ${commit}`;
+  },
 
-        // Create feature branch
-        const branchName = `feature/${name}`;
-        execSync(`git checkout -b ${branchName}`, {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+  "create-feature-branch": async (args) => {
+    const { name } = args;
+    if (!name) throw new Error("name parameter required");
+    assertGitRef(name, "feature name");
+    const branchName = `feature/${name}`;
 
-        return `✓ Created feature branch '${branchName}' (submodules synced)`;
-      } catch (error) {
-        throw new Error(
-          `Failed to create feature branch: ${(error as Error).message}`
-        );
-      }
-    },
+    // Order matters here:
+    //   1. Checkout the base branch and pull — gives us a clean, up-to-date
+    //      starting point.
+    //   2. Create the feature branch from base.
+    //   3. Sync submodules ON the feature branch — any submodule-pointer
+    //      commits land on the feature branch, NOT on `develop`, so the
+    //      developer's local `develop` doesn't accumulate chore commits.
+    checkoutDevBaseAndPull();
+    run("git", ["checkout", "-b", branchName]);
 
-    "create-release-branch": async (args) => {
-      const { version } = args;
-      if (!version) throw new Error("version parameter required");
+    await handlers["sync-submodule"]({ name: "moovie" });
+    await handlers["sync-submodule"]({ name: "backend" });
 
-      try {
-        // Sync first
-        await tools["sync-submodule"]({
-          name: "moovie",
-        });
-        await tools["sync-submodule"]({
-          name: "backend",
-        });
+    return `✓ Created feature branch '${branchName}' (submodules synced)`;
+  },
 
-        // Checkout develop
-        execSync("git checkout develop || git checkout dev", {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+  "create-release-branch": async (args) => {
+    const { version } = args;
+    if (!version) throw new Error("version parameter required");
+    assertGitRef(version, "version");
+    const branchName = `release/${version}`;
 
-        // Pull latest
-        execSync("git pull", { cwd: ROOT_DIR, stdio: "pipe" });
+    // Same ordering as create-feature-branch — submodule-pointer commits
+    // land on the release branch, not on `develop`.
+    checkoutDevBaseAndPull();
+    run("git", ["checkout", "-b", branchName]);
 
-        // Create release branch
-        const branchName = `release/${version}`;
-        execSync(`git checkout -b ${branchName}`, {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+    await handlers["sync-submodule"]({ name: "moovie" });
+    await handlers["sync-submodule"]({ name: "backend" });
 
-        return `✓ Created release branch '${branchName}' (submodules synced)`;
-      } catch (error) {
-        throw new Error(
-          `Failed to create release branch: ${(error as Error).message}`
-        );
-      }
-    },
+    return `✓ Created release branch '${branchName}' (submodules synced)`;
+  },
 
-    "open-pull-request": async (args) => {
-      const { title, description } = args;
-      if (!title) throw new Error("title parameter required");
+  "open-pull-request": async (args) => {
+    const { title, description } = args;
+    if (!title) throw new Error("title parameter required");
 
-      try {
-        // Get current branch name
-        const branch = execSync("git rev-parse --abbrev-ref HEAD", {
-          cwd: ROOT_DIR,
-          encoding: "utf-8",
-        }).trim();
+    const branch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
+    if (branch === "HEAD") {
+      throw new Error(
+        "Cannot open a pull request from a detached HEAD. Check out a branch first."
+      );
+    }
+    assertGitRef(branch, "current branch");
 
-        // Determine base branch
-        let baseRef = "main";
-        if (branch.startsWith("feature/") || branch.startsWith("fix/")) {
-          baseRef = "develop";
-        } else if (branch.startsWith("release/")) {
-          baseRef = "main";
-        }
+    // Align with .claude/verify-docs.sh base-branch resolution:
+    //   release/*, develop, main -> main
+    //   everything else          -> develop
+    // Anything that lands on `main` must be an explicit release-style branch.
+    let baseRef: "main" | "develop" = "develop";
+    if (
+      branch.startsWith("release/") ||
+      branch === "develop" ||
+      branch === "main"
+    ) {
+      baseRef = "main";
+    }
 
-        // Push current branch
-        execSync(`git push -u origin ${branch}`, {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+    run("git", ["push", "-u", "origin", branch]);
 
-        // Create PR using gh CLI (auto-uses .github/pull_request_template.md)
-        const ghArgs = [`--title "${title}"`, `--base ${baseRef}`];
-        if (description) {
-          ghArgs.push(`--body "${description}"`);
-        }
+    // `gh pr create` needs either an explicit body or --fill in non-interactive
+    // contexts (which is how the MCP server is always invoked) — otherwise it
+    // hangs waiting for an editor. --fill seeds title/body from commit log,
+    // overridden by --title we already pass.
+    const ghArgv = ["pr", "create", "--title", title, "--base", baseRef];
+    if (description) {
+      ghArgv.push("--body", description);
+    } else {
+      ghArgv.push("--fill");
+    }
+    run("gh", ghArgv);
 
-        execSync(`gh pr create ${ghArgs.join(" ")}`, {
-          cwd: ROOT_DIR,
-          stdio: "pipe",
-        });
+    return `✓ PR created: ${branch} → ${baseRef}`;
+  },
 
-        return `✓ PR created: ${branch} → ${baseRef}\nTemplate applied from .github/pull_request_template.md`;
-      } catch (error) {
-        throw new Error(
-          `Failed to open PR: ${(error as Error).message}`
-        );
-      }
-    },
+  "check-status": async () => {
+    const lines = (s: string) => s.trim().split("\n");
 
-    "check-status": async () => {
-      try {
-        const moovieStatus = execSync(
-          "git -C moovie rev-parse HEAD && git -C moovie rev-parse origin/main",
-          {
-            cwd: ROOT_DIR,
-            encoding: "utf-8",
-          }
-        );
-        const backendStatus = execSync(
-          "git -C backend rev-parse HEAD && git -C backend rev-parse origin/main",
-          {
-            cwd: ROOT_DIR,
-            encoding: "utf-8",
-          }
-        );
+    const moovieLines = lines(
+      run("git", ["-C", "moovie", "rev-parse", "HEAD", "origin/main"])
+    );
+    const backendLines = lines(
+      run("git", ["-C", "backend", "rev-parse", "HEAD", "origin/main"])
+    );
 
-        const moovieLines = moovieStatus.trim().split("\n");
-        const backendLines = backendStatus.trim().split("\n");
+    const moovieStale = moovieLines[0] !== moovieLines[1];
+    const backendStale = backendLines[0] !== backendLines[1];
 
-        const moovieStale = moovieLines[0] !== moovieLines[1];
-        const backendStale = backendLines[0] !== backendLines[1];
+    let status = "Submodule Status:\n";
+    status += `  moovie:  ${moovieStale ? "⚠ STALE" : "✓ up to date"}\n`;
+    status += `  backend: ${backendStale ? "⚠ STALE" : "✓ up to date"}`;
+    return status;
+  },
+};
 
-        let status = "Submodule Status:\n";
-        status += `  moovie:  ${moovieStale ? "⚠ STALE" : "✓ up to date"}\n`;
-        status += `  backend: ${backendStale ? "⚠ STALE" : "✓ up to date"}`;
-
-        return status;
-      } catch (error) {
-        throw new Error(`Failed to check status: ${(error as Error).message}`);
-      }
-    },
-  };
-
-// Tool definitions for MCP
-const toolDefinitions: Tool[] = [
+const toolDefinitions = [
   {
     name: "sync-submodule",
     description:
@@ -306,11 +288,36 @@ const toolDefinitions: Tool[] = [
   },
 ];
 
-// Main server loop (for testing/CLI usage)
-if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log("repo-management MCP Server");
-  console.log("Available tools:");
-  toolDefinitions.forEach((tool) => {
-    console.log(`  - ${tool.name}: ${tool.description}`);
-  });
-}
+const server = new Server(
+  { name: "repo-management", version: "1.2.0" },
+  { capabilities: { tools: {} } }
+);
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: toolDefinitions,
+}));
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+  const handler = handlers[name];
+  if (!handler) {
+    return {
+      content: [{ type: "text", text: `Unknown tool: ${name}` }],
+      isError: true,
+    };
+  }
+  try {
+    const result = await handler((args ?? {}) as Record<string, string>);
+    return { content: [{ type: "text", text: result }] };
+  } catch (error) {
+    return {
+      content: [
+        { type: "text", text: (error as Error).message || String(error) },
+      ],
+      isError: true,
+    };
+  }
+});
+
+const transport = new StdioServerTransport();
+await server.connect(transport);

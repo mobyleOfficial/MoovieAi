@@ -1,11 +1,40 @@
 #!/bin/bash
 # Verifies README.md and CLAUDE.md are updated when relevant code changes
-# Triggered before PR creation to catch out-of-sync documentation
+# Triggered before PR creation to catch out-of-sync documentation.
+#
+# Base branch convention (matches CLAUDE.md):
+#   feature/* | fix/*  -> develop
+#   release/*          -> main
+#   develop            -> main (release PR)
+#   anything else      -> develop (default)
 
 set -euo pipefail
 
-# Get files changed in this branch vs main
-CHANGED_FILES=$(git diff --name-only main...HEAD 2>/dev/null || git diff --name-only origin/main...HEAD 2>/dev/null || echo "")
+# Determine target base branch from current HEAD
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+case "$current_branch" in
+  release/*|develop|main) base_ref="main" ;;
+  *)                      base_ref="develop" ;;
+esac
+
+# Resolve a usable ref: prefer local, fall back to origin/, then bail out
+resolved_base=""
+for candidate in "$base_ref" "origin/$base_ref"; do
+  if git rev-parse --verify --quiet "$candidate" >/dev/null; then
+    resolved_base="$candidate"
+    break
+  fi
+done
+
+if [ -z "$resolved_base" ]; then
+  # No merge base available (fresh clone / orphan branch). Don't gate.
+  echo "verify-docs: no base ref for '$base_ref' — skipping doc-sync check."
+  exit 0
+fi
+
+# Diff this branch against its base. Use merge-base form so commits already on
+# base don't get re-flagged.
+CHANGED_FILES=$(git diff --name-only "${resolved_base}...HEAD" 2>/dev/null || echo "")
 
 if [ -z "$CHANGED_FILES" ]; then
   echo "No changes detected. Documentation check skipped."
@@ -15,16 +44,20 @@ fi
 VIOLATIONS=0
 DOCS_MODIFIED=0
 
-# Check if docs were modified
-if echo "$CHANGED_FILES" | grep -qE "^(README\.md|CLAUDE\.md)$"; then
+# Check if any documentation file was modified. Per rules/DOCS_UP_TO_DATE.md
+# a doc update can land in README/CLAUDE.md (root or subdir), an agent spec
+# (agents/*.md), a rule definition (rules/*.md), a skill (.claude/skills/),
+# a hook README, or the audit/research docs (research/*.md). Any .md change
+# under those paths satisfies the rule — the underlying intent is that human-
+# readable behavior documentation stays in sync with code.
+if echo "$CHANGED_FILES" | grep -qE '(^|/)(README|CLAUDE)\.md$|^agents/.*\.md$|^rules/.*\.md$|^\.claude/.*\.md$|^research/.*\.md$|^commands/.*\.md$'; then
   DOCS_MODIFIED=1
 fi
 
 # Patterns that should trigger doc updates
 CRITICAL_CHANGES=(
-  "^\.claude/"                          # Claude config changes
+  "^\.claude/"                          # Claude config + skills + hooks
   "^plugins/"                           # Plugin changes
-  "^skills/"                            # Skills changes
   "^agents/"                            # Agents changes
   "^rules/"                             # Rules changes
   "^moovie/" "^backend/"                # Submodule structure changes
@@ -47,7 +80,7 @@ if [ "$HAS_CRITICAL_CHANGE" -eq 1 ] && [ "$DOCS_MODIFIED" -eq 0 ]; then
   echo "⚠️  Documentation out of sync"
   echo ""
   echo "Critical files changed:"
-  echo "$CHANGED_FILES" | grep -E "^\.claude/|^plugins/|^skills/|^agents/|^rules/|package\.json|gradle|pubspec\.yaml" | sed 's/^/  - /'
+  echo "$CHANGED_FILES" | grep -E "^\.claude/|^plugins/|^agents/|^rules/|^moovie/|^backend/|package\.json|gradle|pubspec\.yaml|Gemfile|\.env|docker" | sed 's/^/  - /'
   echo ""
   echo "README.md and/or CLAUDE.md should be updated."
   echo "Update docs before opening PR to keep team in sync."

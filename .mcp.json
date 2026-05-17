@@ -3,6 +3,9 @@
     "repo-management": {
       "command": "node",
       "args": ["./plugins/repo-management/dist/index.js"]
+    },
+    "linear": {
+      "command": "./.claude/bin/linear-mcp.sh"
     }
   }
 }
