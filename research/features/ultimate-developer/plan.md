@@ -43,7 +43,7 @@
 
 - **Working directory:** All commands assume PWD = meta-repo root (`MoovieAi/`). Set once at start: `cd <path-to-MoovieAi>`. The plan uses relative paths thereafter (e.g., `rules/backend-architecture.md`, not absolute `/Users/.../MoovieAi/rules/...`). Submodule commands explicitly note when to `cd <submodule>`.
 - **Repo variable:** Set `REPO=mobyleOfficial/MoovieAi` once at top of any shell session that uses `gh api` raw calls (calls without `gh pr`/`gh repo` shortcuts). Use `gh api repos/${REPO}/...` thereafter so this plan is reusable in forks.
-- **Temp files:** Use `mktemp` for scratch files (`SMOKE=$(mktemp /tmp/ud-smoke.XXXXXX.sh)`), never hardcoded `/tmp/test-*.sh` (multi-user collision risk). Clean up with `rm "$SMOKE"` after the test.
+- **Temp files:** Use `mktemp` for scratch files (`SMOKE=$(mktemp -t ud-smoke.XXXXXX); trap 'rm -f "$SMOKE"' EXIT`), never hardcoded `/tmp/test-*.sh` (multi-user collision risk). The X's MUST be the trailing characters of the template — GNU mktemp rejects templates like `ud-smoke.XXXXXX.sh` where extra characters follow the X's. The `trap ... EXIT` ensures cleanup even on early script failure or Ctrl-C; explicit `rm "$SMOKE"` at end of task remains as belt-and-suspenders and becomes a no-op if trap already fired.
 - **Branch:** Stay on the user's current working branch unless explicitly told to cut a new one. The execution model is: this is a feature branch in the meta-repo; we are implementing the feature in-place.
 - **Commits:** Conventional Commits (`feat:`, `doc:`, `chore:`, `fix:`, `test:`). No co-author trailers (NO_COAUTHORS rule).
 - **File-staging:** `git add` named files, never `-A` or `.`.
@@ -127,6 +127,7 @@ Read `backend/build.gradle.kts`. Note Ktor version, Kotlin version, Koin version
 Create the smoke test in a `mktemp` file (avoids `/tmp/*` collisions when multiple users run the plan on a shared host):
 ```bash
 SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+trap 'rm -f "$SMOKE"' EXIT
 chmod +x "$SMOKE"
 cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
@@ -237,6 +238,7 @@ rm "$SMOKE"
 Create the smoke test (mktemp pattern, per Conventions):
 ```bash
 SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+trap 'rm -f "$SMOKE"' EXIT
 chmod +x "$SMOKE"
 cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
@@ -562,6 +564,7 @@ git commit -m "feat(architect-review): add audit-only mode with STRICT JSON + pe
 Create the smoke test (mktemp pattern):
 ```bash
 SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+trap 'rm -f "$SMOKE"' EXIT
 chmod +x "$SMOKE"
 cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
@@ -654,6 +657,7 @@ git commit -m "feat(implementer-tester): accept slug= arg, read from research/fe
 Create the smoke test (mktemp pattern):
 ```bash
 SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+trap 'rm -f "$SMOKE"' EXIT
 chmod +x "$SMOKE"
 cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
@@ -810,6 +814,7 @@ rm "$SMOKE"
 Create the smoke test (mktemp pattern):
 ```bash
 SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+trap 'rm -f "$SMOKE"' EXIT
 chmod +x "$SMOKE"
 cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
@@ -934,6 +939,7 @@ The biggest piece. Broken into eleven sub-tasks (6.1–6.11). Each produces one 
 Create the smoke test (mktemp pattern). Persists for the rest of Phase 6 sub-tasks; cleanup happens in Task 6.11:
 ```bash
 SMOKE=$(mktemp -t ud-smoke.XXXXXX)
+trap 'rm -f "$SMOKE"' EXIT
 chmod +x "$SMOKE"
 cat > "$SMOKE" <<'EOF'
 #!/usr/bin/env bash
@@ -1397,13 +1403,13 @@ while iter < max_iter:
             if result == "verification_failed":
                 attempts = increment_fix_attempts(thread.id)  # see fix_attempts primitive
                 if attempts >= 3:
-                    escalate(pr, thread, reason="3 fix attempts failed verification")
+                    escalate(pr, "3 fix attempts failed verification", thread=thread)
                     return "ABORTED"
                 # do NOT commit; loop continues to next thread, retries this one in the next iteration
                 log_decision(iter, thread, f"fix-attempt-{attempts}-failed", None)
                 continue
             if result == "deferred":
-                escalate(pr, thread, reason="defer:suggestion unclear")
+                escalate(pr, "defer:suggestion unclear", thread=thread)
                 return "ABORTED"
             commit_and_push(message=f"fix({slug}): address review finding — {thread.title}")
             sha = head_sha()
@@ -1416,7 +1422,7 @@ while iter < max_iter:
             resolve_thread(thread.node_id)
             log_decision(iter, thread, "reject", None)
         elif decision == "defer":
-            escalate(pr, thread, reason="defer:needs human input")
+            escalate(pr, "defer:needs human input", thread=thread)
             return "ABORTED"
 
     # Step G — convergence check
@@ -1424,7 +1430,7 @@ while iter < max_iter:
         return "CONVERGED"
 
 # Cap hit
-escalate(pr, reason="iteration_cap", iter=max_iter)
+escalate(pr, "iteration_cap", iter=max_iter)
 return "CAP_HIT"
 ```
 
@@ -1454,16 +1460,16 @@ The loop's pseudocode names map to these concrete operations. The implementer mu
 | `gh_root_comments(pr)` | `gh api --paginate "repos/${REPO}/pulls/$pr/comments" --jq '[.[] \| select(.in_reply_to_id == null) \| {id, node_id, path, line, body, user: .user.login}]'` (returns JSON array) |
 | `gh_unresolved_threads(pr)` | Paginated GraphQL query (see GH Thread Authoring `find_thread` pattern) filtered to `nodes[] \| select(.isResolved == false)` — returns array of `{id, comments[]}` |
 | `dispatch_reviewers_audit_only(pr, phase, reviewers[])` | A single message containing one `Task(subagent_type=<r>, prompt="mode: \"audit-only\"\nslug=$slug\npr=$pr\niter=$iter\n...")` per reviewer in `reviewers`. Parse each return via the JSON extractor (see Sub-Agent Dispatch > Parsing). Merge `.comments // .findings` arrays. |
-| `dedupe(findings, prior_comments)` | Normalize body BEFORE hashing — strip leading severity-badge image markdown (matches `^\s*!\[[^\]]*\]\([^)]*gstatic[^)]*\)\s*\n+`, plus the optional `**CRITICAL**` text prefix and any stacked security-* badges), then take first 80 chars of remaining body. Compute `hash = sha1_hex(path + ":" + line + ":" + normalized_body[:80])` via Python (portable across macOS/Linux): `hash=$(printf -- '%s' "$key" \| python3 -c 'import hashlib,sys; print(hashlib.sha1(sys.stdin.read().encode()).hexdigest())')`. Apply same normalize+hash to each `prior_comments[]`. Drop findings whose hash matches an unresolved prior comment. The badge-strip is critical — `post_inline_review` prepends a badge to our posted comments, so raw-finding hashes would never match stored-comment hashes without it. |
+| `dedupe(findings, prior_comments)` | Normalize body BEFORE hashing. `post_inline_review` prepends a CRITICAL prefix (only for critical) and one or more stacked `gstatic` badge images (security + severity badges separated by spaces, per `agents/reviewer.md`), so raw-finding bodies and stored-comment bodies will never hash-match without normalization. Use Python regex so the strip handles BOTH the repeating-badge group AND the optional CRITICAL text in one pass: <br><br> ```python<br>import re<br>def normalize(body):<br>    body = re.sub(r'^\s*\*\*CRITICAL\*\*\s*', '', body)             # strip optional **CRITICAL** prefix<br>    body = re.sub(r'^\s*(!\[[^\]]*\]\([^)]*gstatic[^)]*\)\s*)+\n*', '', body)  # strip one OR MORE stacked badge images<br>    return body.strip()[:80]<br>``` <br><br> Then `hash = sha1_hex(path + ":" + line + ":" + normalize(body))`, computed via Python (portable across macOS/Linux — avoids the `sha1` shell command which is unavailable on most platforms): `hash=$(printf -- '%s' "$key" \| python3 -c 'import hashlib,sys; print(hashlib.sha1(sys.stdin.read().encode()).hexdigest())')`. Apply same `normalize`+hash to each `prior_comments[]`. Drop findings whose hash matches an unresolved prior comment. |
 | `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. |
 | `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. |
-| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, or `"deferred"`. The caller's pseudocode (Step F above) branches on this value. <br><br> **Step 1 — capture pre-state for symmetric revert.** Record the set of files that exist under the working tree relevant to the edit. Stash any prior uncommitted changes: `git stash push -u -m "ud-apply_fix-pre"`. Pop on success or on revert (see Step 3). The `-u` flag stashes untracked too — so when we revert, `Write`-created new files (which are untracked at the moment of revert) also come back to the stash and get popped or dropped. <br><br> **Step 2 — apply.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Use `Edit` for existing files, or `Write` for new files, per the thread's `Fix:` suggestion. If the suggestion is unparseable or contradictory: `git stash drop` (discard the stash, nothing was changed) and return `"deferred"`. <br><br> **Step 3 — verify, with symmetric revert on failure.** Run the phase's verification command (see below). On PASS: `git stash drop` (discard pre-state stash — the edit stands), return `"ok"`. On FAIL: `git restore --staged --worktree -- .` to unstage and discard tracked-file modifications, plus `git clean -fd -- <edited-paths>` to delete any `Write`-created untracked files in just the touched paths (NOT a repo-wide `git clean -fd`, which would delete unrelated untracked work). Then `git stash pop` to restore the pre-existing uncommitted state. Return `"verification_failed"`. <br><br> **Per-phase verification commands:** <br>• spec/plan phases: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + a markdown link checker (e.g. `npx markdown-link-check` or a Python `urllib` walk) on any link touched. <br>• impl phase in moovie: `cd moovie && flutter analyze && flutter test` <br>• impl phase in backend: `cd backend && ./gradlew test` <br><br> The `git clean -fd -- <edited-paths>` constraint is what stops the original "git checkout -- can't remove Write-created new files" bug. The path-list comes from the staged + untracked diff captured between Steps 1 and 3. |
+| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, or `"deferred"`. The caller's pseudocode (Step F above) branches on this value. <br><br> **Critical invariant:** the user may have pre-existing uncommitted work in the working tree when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. That means **ALWAYS pop the stash before returning, NEVER drop it**. Dropping the stash on a successful fix (or on a `"deferred"` early exit) would permanently lose the user's work — the entire reason for the stash is to make the diff we commit equal to ONLY our edit, not user's prior changes mixed in. <br><br> **Step 1 — capture pre-state for symmetric revert.** Stash any prior uncommitted changes: `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. The `-u` flag stashes untracked too. Tag the stash message with `<thread_id>` so the re-entry stash-cleanup primitive (see Safety Circuits > Orphan stash recovery) can recognize ours. Record `STASH_CREATED=true` if `git stash push` reported new entry (i.e., there were changes to stash); `false` otherwise — used in Steps 2/3 to decide whether to pop. <br><br> **Step 2 — apply.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Use `Edit` for existing files, or `Write` for new files, per the thread's `Fix:` suggestion. If the suggestion is unparseable or contradictory: pop the stash if `STASH_CREATED=true` (`git stash pop` — restores user's pre-existing work; the edit was never applied so the pop replays cleanly), return `"deferred"`. <br><br> **Step 3 — verify, with symmetric revert on failure.** Diff our edit (`our_paths=$(git diff --name-only; git ls-files --others --exclude-standard | grep -F -f <(diff-of-paths-touched-in-Step-2))`) — capture the path list BEFORE running verification (verification commands may produce new untracked outputs like `.dart_tool/`, which must NOT be deleted on revert). Run the phase's verification command (see below). <br><br> **On PASS:** the edit is good. We need to commit our edit but NOT the user's prior work. Stage only `our_paths`. If `STASH_CREATED=true`, pop the stash AFTER staging so user's prior work returns to the working tree (unstaged), separate from our staged edit. Caller's `commit_and_push` commits only the staged paths. Return `"ok"`. <br><br> **On FAIL:** restore staged + unstaged tracked changes in our paths only — `git restore --staged --worktree -- <our_paths_tracked>` — and delete `Write`-created untracked files in those same paths via `git clean -f -- <our_paths_untracked>` (path-scoped — NOT repo-wide; that would delete unrelated untracked work, including the user's prior untracked files that we stashed). If `STASH_CREATED=true`, pop the stash to restore user's pre-existing uncommitted state. Return `"verification_failed"`. <br><br> **Per-phase verification commands:** <br>• spec/plan phases: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + a markdown link checker (e.g. `npx markdown-link-check` or a Python `urllib` walk) on any link touched. <br>• impl phase in moovie: `cd moovie && flutter analyze && flutter test` <br>• impl phase in backend: `cd backend && ./gradlew test` |
 | `commit_and_push(message)` | Preconditions: `apply_fix` returned `"ok"` (verification passed). Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
 | `increment_fix_attempts(thread_id)` / `reset_fix_attempts(thread_id)` | Per-thread fix-attempt counter. **Storage:** in-process bash associative array `FIX_ATTEMPTS` (`declare -A FIX_ATTEMPTS` at agent start), plus a mirrored line in `research/features/<slug>/review-log.md` so the counter survives mid-loop interruption + re-entry. **Key:** `thread_id` (the `node_id` from `gh_root_comments`, stable across passes). **Increment:** `FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1)); echo "fix_attempts[$thread_id]=${FIX_ATTEMPTS[$thread_id]}" >> review-log.md`; returns the new value. **Reset (on successful commit):** `unset 'FIX_ATTEMPTS[$thread_id]'; echo "fix_attempts[$thread_id]=0" >> review-log.md` (mirror records the reset). **Recovery on re-entry:** before entering the loop, scan review-log.md for the latest `fix_attempts[$id]=N` line per id (last-write-wins) and restore the in-memory map. **Cap:** 3 (referenced in the pseudocode above and in Safety Circuits escalation triggers). |
 | `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
 | `reply_thread(pr, comment_id, body)` | `gh api "repos/${REPO}/pulls/$pr/comments/$comment_id/replies" -X POST -f body="$body"` |
 | `resolve_thread(node_id)` | GraphQL `resolveReviewThread` mutation (see GH Thread Authoring); guarded with `isResolved` check to skip already-resolved threads. |
-| `escalate(pr, reason, ...)` | Post the escalation comment (template in Safety Circuits > Escalation channel) to the PR. Add label `ultimate-developer:escalated` via `gh pr edit "$pr" --add-label "ultimate-developer:escalated"`. Exit with status 2. |
+| `escalate(pr, reason, **kwargs)` | Post the escalation comment (template in Safety Circuits > Escalation channel) to the PR. Accepted keyword args: `thread` (the thread object for thread-specific escalations — included in the comment body when present), `iter` (current iteration count, for cap-hit escalations), and any other context the caller wants threaded into the comment. Add label `ultimate-developer:escalated` via `gh pr edit "$pr" --add-label "ultimate-developer:escalated"`. Exit with status 2. The signature is **keyword-or-positional after `reason`** — pseudocode `escalate(pr, thread, reason="...")` form is valid only if `thread` is explicitly the second positional AND `reason` is keyword; otherwise call as `escalate(pr, "<reason>", thread=thread)`. Implementer must standardize on one calling style in code; pseudocode in this plan uses the keyword-arg form. |
 | `log_iteration / log_findings / log_decision` | Append a YAML-fenced block (see Logging subsection below) to `research/features/$slug/review-log.md`. Use `tee -a` from a heredoc; do NOT use `>>` with `echo` (escaping issues). |
 
 If a primitive depends on a state not shown in pseudocode (e.g., `$slug`, `$REPO_ROOT`, `$REPO_DIR`), it's because the variable was set earlier in the same phase (see each Phase section's Setup).
@@ -1739,6 +1745,26 @@ safe_merge() {
 Note for the cross-repo flow: the final `chore/<slug>-bump-refs` PR is a pure ref-change with no functional code. It's the one case where setting `UD_ALLOW_NO_APPROVAL_MERGE=1` for the single `safe_merge "$BUMP_PR"` call is defensible (it has already passed the impl PR gate; the bump PR has no semantics beyond updating two commit SHAs). All other merges must satisfy the approval check.
 
 Every `gh pr merge` invocation in this plan goes through `safe_merge` instead. Direct `gh pr merge` is forbidden from ultimate-developer.
+
+### Orphan stash recovery (`apply_fix` re-entry)
+
+`apply_fix` Step 1 creates `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`; Steps 2/3 always pop it before returning. If the agent is killed (SIGKILL, OOM, host crash, user Ctrl-C during verification) between push and pop, the stash entry persists — orphaning the user's pre-existing uncommitted work in the stash list. The next run would push a fresh stash on top, layering work; or `apply_fix` would commit edits to an unstashed working tree containing the previous interruption's edit.
+
+At agent start (after Kickoff Step 1, before entering any phase loop), scan and clean up:
+
+```bash
+# List any leftover ud-apply_fix-pre stashes from a prior interrupted run.
+mapfile -t orphan_stashes < <(git stash list | awk -F': ' '/On .*: ud-apply_fix-pre-/{print $1}')
+if [ "${#orphan_stashes[@]}" -gt 0 ]; then
+  # Refuse to clobber. The user may have unrelated work in the stash or want to inspect it.
+  # Escalate with the stash list so the user can pop/drop manually before re-running.
+  escalate "" "orphan ud-apply_fix-pre stash(es) found from prior interrupted run" \
+    detail="$(git stash list | grep ud-apply_fix-pre)"
+  exit 2
+fi
+```
+
+Why escalate instead of auto-pop: the orphan stash represents user-or-agent work from a state we don't know about. Auto-popping risks merge conflicts against the current working tree state, and auto-dropping risks data loss. Human triage is the safe choice. Once the user clears the stashes (`git stash pop` if their work; `git stash drop` if known-stale), re-run ultimate-developer cleanly.
 
 ### Escalation triggers — STOP autonomous flow
 
