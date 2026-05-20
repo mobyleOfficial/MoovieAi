@@ -9,30 +9,42 @@ UI modules live under `ui/`. This is a container directory — NOT a package. On
 
 ## UI Module Structure
 
-Each UI module is a package that contains three files:
+Each UI module is a package that contains **four files** following the Page/Screen split pattern:
 
 ```
 ui/<module_name>/
   pubspec.yaml                          # Package: <module_name>
   lib/
-    <module_name>_bloc.dart             # BLoC for state management
-    <module_name>_screen.dart           # Screen widget
+    <module_name>.dart                  # Barrel file re-exporting all four files
     <module_name>_state.dart            # State class(es) for the BLoC
+    <module_name>_bloc.dart             # Cubit for state management
+    <module_name>_page.dart             # Page: @RoutePage(), owns Cubit lifecycle, handles navigation
+    <module_name>_screen.dart           # Screen: StatelessWidget, pure UI, receives state/cubit as params
 ```
 
 ## File Responsibilities
 
 - `<module_name>_state.dart` — sealed base class + `Loading`, `Success`, and `Error` concrete states.
-- `<module_name>_bloc.dart` — Cubit extending `Cubit<<ModuleName>State>`, starts in `Loading`.
-- `<module_name>_screen.dart` — `@RoutePage()` widget that provides the Cubit and reacts with `BlocBuilder`.
+- `<module_name>_bloc.dart` — Cubit extending `Cubit<<ModuleName>State>`, starts in `Loading`. Contains business logic (fetching data, handling events). Does NOT resolve its own dependencies — receives use cases via constructor.
+- `<module_name>_page.dart` — `@RoutePage()` **StatefulWidget**. Owns the Cubit lifecycle (creates in `initState` or field initializer, disposes in `dispose`). Resolves dependencies from `GetIt`. Handles navigation via `BlocConsumer` listener. Delegates rendering to the Screen.
+- `<module_name>_screen.dart` — **StatelessWidget**. Pure UI only — receives the Cubit (or state) as a constructor parameter. Uses `BlocProvider.value` + `BlocBuilder` to render. Never resolves dependencies or handles navigation directly.
+
+### Why Page/Screen Split?
+
+- **Testability:** The Screen can be tested with a mock Cubit without needing `GetIt` or navigation context.
+- **Separation of concerns:** DI resolution, lifecycle, and navigation live in the Page. Rendering lives in the Screen.
+- **Consistency:** Matches the established pattern in `movies_ui` (`MoviesHomePage` + `MoviesHomeScreen`).
 
 Use `/new-ui-module <name>` to scaffold a new module from the standard template.
 
 ## Rules
 
 - Each UI module is its own package with its own `pubspec.yaml`.
-- Every UI module must contain exactly three files (plus the barrel file): `<module_name>_bloc.dart`, `<module_name>_screen.dart`, and `<module_name>_state.dart`.
+- Every UI module **MUST** contain exactly four files (plus the barrel): `_state.dart`, `_bloc.dart`, `_page.dart`, and `_screen.dart`.
+- **ALWAYS** use the Page/Screen split. Never put `@RoutePage()`, `GetIt` resolution, or Cubit lifecycle management in the Screen. Never put rendering logic in the Page.
+- The Page is the `@RoutePage()` entry point. The Screen is a plain `StatelessWidget`.
+- Cubits are **never registered in DI modules**. The Page resolves use cases from `GetIt` and passes them to the Cubit constructor.
 - Package naming: `<module_name>` matching the directory name.
 - The main app adds the UI module as a path dependency (e.g., `home: path: ui/home`).
-- The barrel file re-exports all three files.
-- File names use `snake_case`. Class names use `PascalCase` (e.g., `HomeBloc`, `HomeScreen`, `HomeState`).
+- The barrel file re-exports all four files.
+- File names use `snake_case`. Class names use `PascalCase` (e.g., `HomeCubit`, `HomePage`, `HomeScreen`, `HomeState`).

@@ -107,13 +107,16 @@ Adding a feature without registering crashes the app at runtime with `GetIt: Obj
 - One class per file. Filenames use `snake_case`, class names use `PascalCase`.
 - Use cases: one per file, single public `call` method.
 
-## UI Module Rules
+## UI Module Rules (Page/Screen Split)
 
-Each UI module contains exactly three files plus a barrel:
+Each UI module contains exactly **four files** plus a barrel. ALWAYS follow this pattern:
 
 - `<module>_state.dart` — Sealed base + `Loading`/`Success`/`Error` states
-- `<module>_bloc.dart` — `Cubit<<Module>State>`, starts in `Loading`
-- `<module>_screen.dart` — `@RoutePage()` widget, provides Cubit, uses `BlocBuilder`
+- `<module>_bloc.dart` — `Cubit<<Module>State>`, starts in `Loading`. Receives use cases via constructor — never resolves from GetIt itself.
+- `<module>_page.dart` — `@RoutePage()` **StatefulWidget**. Owns the Cubit lifecycle (create + dispose). Resolves use cases from `GetIt` and passes them to the Cubit. Handles navigation in `BlocConsumer` listener. Delegates rendering to the Screen.
+- `<module>_screen.dart` — **StatelessWidget**. Pure UI only. Receives state or cubit as constructor parameter. Uses `BlocProvider.value` + `BlocBuilder` to render. Never uses `GetIt` or handles navigation.
+
+Cubits are **never registered in DI modules** — only datasources, repositories, and use cases go in DI. The Page resolves use cases from GetIt and constructs the Cubit.
 
 Add router files if needed. Generated routes are regenerated automatically when annotations change.
 
