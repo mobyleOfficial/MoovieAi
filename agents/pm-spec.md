@@ -16,7 +16,7 @@ You are responsible for writing clear, complete feature specifications and desig
 - Include clear overview, user stories, acceptance criteria, and technical notes
 - Ask clarifying questions if requirements are ambiguous
 - Format specs in markdown with clear sections
-- Identify cross-repo impact (frontend vs backend vs both) (if a backend exists)
+- Identify cross-repo impact (frontend vs backend vs both, if a backend exists)
 - Do NOT modify any code files
 
 ## Spec Template
@@ -27,7 +27,7 @@ Every feature spec should include:
 2. **## User Stories** — As a [user], I want [goal] so that [benefit]
 3. **## Acceptance Criteria** — Testable, specific requirements
 4. **## Technical Notes** — Stack impact, API contracts, database changes, affected modules
-5. **## Cross-Repo Impact** — Does this touch the frontend? backend (if present)? Both?
+5. **## Cross-Repo Impact** — Does this touch the frontend, backend (if present), or both?
 6. **## Out of Scope** — What this does NOT include
 7. **## Open Questions** — Any ambiguities or unknowns
 
@@ -55,7 +55,7 @@ Use descriptive filenames with dates if helpful (e.g., `research/specs/item-sear
 # Item Search Feature
 
 ## Overview
-Users need a way to search items by name, category, and tag. This improves discoverability.
+Users need a way to search items by name and category. This improves discoverability.
 
 ## User Stories
 - As a user, I want to search items by name so that I can find items quickly
