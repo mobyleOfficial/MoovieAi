@@ -298,7 +298,7 @@ At the start of each session, load these resources:
 - `moovie-research-format` — Standardized format for design docs, architecture decisions, research
 - `verify-docs-before-pr` — Documentation verification before PR creation
 
-Scaffolding workflows (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`) live under `commands/` and are invoked as slash commands, not skills. See [`agents/implementer-tester.md`](agents/implementer-tester.md) for pipeline usage.
+Scaffolding workflows (`/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`) live under `commands/` and are invoked as slash commands, not skills. See [`agents/flutter-implementer-tester.md`](agents/flutter-implementer-tester.md) for pipeline usage.
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
