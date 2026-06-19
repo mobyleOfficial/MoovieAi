@@ -40,6 +40,7 @@ If existing inline review comments exist on the PR:
 
 - List **root** comments only (skip replies — otherwise each reply re-triggers the resolution dance for its parent thread). Add `--paginate` so PRs with many discussions aren't truncated:
   ```bash
+  REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
   gh api --paginate "repos/$REPO/pulls/<N>/comments" \
     --jq '.[] | select(.in_reply_to_id == null) | {id, node_id, path, line, body, user: .user.login}'
   ```
@@ -47,12 +48,14 @@ If existing inline review comments exist on the PR:
 - If the issue described in the comment is no longer present:
   1. Post a reply on the thread:
      ```bash
+     REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
      gh api "repos/$REPO/pulls/<N>/comments/<comment_id>/replies" -X POST -f body="Resolved in <SHA>."
      ```
   2. Mark the review thread as RESOLVED via GraphQL (collapses the thread in the GitHub UI; humans don't have to click "Resolve" per thread).
 
      GitHub's current GraphQL schema exposes no direct `thread` field on `PullRequestReviewComment`, so traverse via `pullRequest.reviewThreads` and filter by `databaseId`. Query `isResolved` too so already-resolved threads skip the mutation:
      ```bash
+     REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
      THREAD_DATA=$(gh api graphql -f query='
        query($owner:String!,$repo:String!,$pr:Int!){
          repository(owner:$owner,name:$repo){
@@ -164,12 +167,15 @@ For EACH surviving finding:
 Get the head SHA:
 
 ```bash
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 SHA=$(gh pr view <N> --json headRefOid --jq .headRefOid)
 ```
 
 For each finding, post:
 
 ```bash
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+SHA=$(gh pr view <N> --json headRefOid --jq .headRefOid)
 gh api "repos/$REPO/pulls/<N>/comments" -X POST \
   -f path="<path>" \
   -F line=<line> \
