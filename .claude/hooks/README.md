@@ -27,13 +27,13 @@ These hooks are designed to run as `Stop` or `PreToolUse` hooks scoped to specif
 | `validate-spec.sh` | `pm-spec` | Stop | Verify spec is complete before stage progression |
 | `pipeline-coordinator.sh` | every pipeline agent | Stop | Advance pipeline queue, hand off to next agent |
 | `human-gate-review.sh` | `architect-review` | Stop | Human approval gate after architect review |
-| `validate-implementation.sh` | `implementer-tester` | Stop | `flutter analyze` + `flutter test`, block on errors |
-| `validate-localization.sh` | `implementer-tester` | Stop | Enforce ARB key parity across `app_en.arb` / `app_es.arb` / `app_pt.arb` |
-| `validate-module-structure.sh` | `implementer-tester` | Stop | Verify required feature/UI module file layout |
-| `verify-di-registration.sh` | `implementer-tester` | Stop | Confirm `@module` files are wired into `injection.config.dart` |
-| `regenerate-generated-files.sh` | `implementer-tester` | Stop | Run `build_runner` / `flutter gen-l10n` when source changes warrant |
-| `enforce-path-restrictions.sh` | `implementer-tester` | PreToolUse Edit\|Write | Reject writes outside the agent's allowed paths |
-| `block-cross-feature-data-imports.sh` | `implementer-tester` | PreToolUse Edit\|Write | Reject imports of another feature's `data/` layer (per `rules/feature-architecture.md`) |
+| `validate-implementation.sh` | `flutter-implementer-tester` | Stop | `flutter analyze` + `flutter test`, block on errors |
+| `validate-localization.sh` | `flutter-implementer-tester` | Stop | Enforce ARB key parity across `app_en.arb` / `app_es.arb` / `app_pt.arb` |
+| `validate-module-structure.sh` | `flutter-implementer-tester` | Stop | Verify required feature/UI module file layout |
+| `verify-di-registration.sh` | `flutter-implementer-tester` | Stop | Confirm `@module` files are wired into `injection.config.dart` |
+| `regenerate-generated-files.sh` | `flutter-implementer-tester` | Stop | Run `build_runner` / `flutter gen-l10n` when source changes warrant |
+| `enforce-path-restrictions.sh` | `flutter-implementer-tester` | PreToolUse Edit\|Write | Reject writes outside the agent's allowed paths |
+| `block-cross-feature-data-imports.sh` | `flutter-implementer-tester` | PreToolUse Edit\|Write | Reject imports of another feature's `data/` layer (per `rules/feature-architecture.md`) |
 
 **Until Claude Code supports per-agent hook registration**, each agent's documentation (`agents/<name>.md`) describes which hooks should run and the agent is expected to invoke them manually via `Bash` before returning. The pipeline-queue tracks stage state via `pipeline-coordinator.sh` which agents are instructed to invoke on completion.
 

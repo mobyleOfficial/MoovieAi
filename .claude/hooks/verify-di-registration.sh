@@ -1,7 +1,7 @@
 #!/bin/bash
 # .claude/hooks/verify-di-registration.sh
 # Verifies every @module file in lib/di/ is wired into lib/di/injection.config.dart.
-# Define this as a Stop hook in the implementer-tester agent's frontmatter.
+# Define this as a Stop hook in the flutter-implementer-tester agent's frontmatter.
 # Missing wiring causes `GetIt: Object/factory not registered` at runtime —
 # the #1 trap called out in CLAUDE.md.
 

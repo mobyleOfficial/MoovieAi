@@ -134,14 +134,14 @@ Examples:
 
 ### Pipeline-generated documents
 
-When a document is produced by the feature-development pipeline (pm-spec → architect-review → implementer-tester → validator), it lives in a category-specific subdirectory under `research/`:
+When a document is produced by the feature-development pipeline (pm-spec → architect-review → flutter-implementer-tester → flutter-validator), it lives in a category-specific subdirectory under `research/`:
 
 | Subdirectory | Produced by | Purpose |
 |--------------|-------------|---------|
 | `research/requests/<feature>.md` | maintainer | Initial feature request |
 | `research/specs/<feature>.md` | `pm-spec` agent | Formal specification |
 | `research/reviews/<feature>.md` | `architect-review` agent | Architecture review verdict |
-| `research/reviews/<feature>-code-review.md` | `validator` agent | Post-implementation code review |
+| `research/reviews/<feature>-code-review.md` | `flutter-validator` agent | Post-implementation code review |
 | `research/archive/<feature>.md` | manual | Completed / shelved features |
 
 Filename inside the subdirectory is based on the feature slug (e.g. `<feature>.md` for specs, `<feature>-code-review.md` for code reviews — no date prefix; pipeline stages map to a single feature, so directory + slug already disambiguate). The metadata YAML block at the top still carries the `date` field.

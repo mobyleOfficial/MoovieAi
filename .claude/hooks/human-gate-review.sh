@@ -47,7 +47,7 @@ if [ "$decision" = "APPROVED" ]; then
   echo "  Spec   : $spec_file"
   echo "  Review : $review_file"
   echo ""
-  echo "To proceed:  use the implementer-tester subagent on $spec_file"
+  echo "To proceed:  use the flutter-implementer-tester subagent on $spec_file"
   echo "To revise :  edit the spec, then re-run the architect-review subagent"
   echo ""
   exit 0

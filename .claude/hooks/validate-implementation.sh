@@ -1,7 +1,7 @@
 #!/bin/bash
 # .claude/hooks/validate-implementation.sh
-# Validates that implementer-tester left the Flutter project in a healthy state.
-# Define this as a Stop hook in the implementer-tester agent's frontmatter.
+# Validates that flutter-implementer-tester left the Flutter project in a healthy state.
+# Define this as a Stop hook in the flutter-implementer-tester agent's frontmatter.
 # Runs `flutter analyze` and `flutter test` — blocks on any error.
 
 set -e

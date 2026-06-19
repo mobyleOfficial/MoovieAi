@@ -18,14 +18,14 @@
     },
     {
       "name": "implement",
-      "agent": "implementer-tester",
+      "agent": "flutter-implementer-tester",
       "status": "pending",
       "input": null,
       "output": null
     },
     {
       "name": "validate",
-      "agent": "validator",
+      "agent": "flutter-validator",
       "status": "pending",
       "input": null,
       "output": null

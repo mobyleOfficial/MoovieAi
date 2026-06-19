@@ -1,7 +1,7 @@
 #!/bin/bash
 # .claude/hooks/validate-module-structure.sh
 # Validates that every feature/UI module has the required structure.
-# Define this as a Stop hook in the implementer-tester agent's frontmatter.
+# Define this as a Stop hook in the flutter-implementer-tester agent's frontmatter.
 # Mirrors the rules in .claude/rules/feature-architecture.md and ui-architecture.md.
 
 set -e

@@ -1,7 +1,7 @@
 #!/bin/bash
 # .claude/hooks/regenerate-generated-files.sh
 # Regenerates code-gen outputs when annotations or ARB files have changed.
-# Define this as a Stop hook in the implementer-tester agent's frontmatter.
+# Define this as a Stop hook in the flutter-implementer-tester agent's frontmatter.
 # Runs BEFORE validate-implementation.sh so analyze/test see fresh generated code.
 #
 # Triggers:

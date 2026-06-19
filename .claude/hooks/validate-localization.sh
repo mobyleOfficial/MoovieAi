@@ -1,7 +1,7 @@
 #!/bin/bash
 # .claude/hooks/validate-localization.sh
 # Enforces ARB key parity across app_en.arb / app_es.arb / app_pt.arb.
-# Define this as a Stop hook in the implementer-tester agent's frontmatter.
+# Define this as a Stop hook in the flutter-implementer-tester agent's frontmatter.
 # Every translatable key (i.e. not starting with @) in the English template
 # must also exist in the Spanish and Portuguese ARB files.
 

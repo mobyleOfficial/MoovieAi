@@ -5,7 +5,7 @@ Central hub for design documents, architecture decisions, feature specifications
 ## Directory Structure
 
 - **specs/** — Feature specifications and requirements. Written by PM, reviewed by architect. Input to the implementation pipeline.
-- **reviews/** — Architecture reviews (spec-stage) and code reviews (post-implementation). Output from `architect-review` and `validator` agents.
+- **reviews/** — Architecture reviews (spec-stage) and code reviews (post-implementation). Output from `architect-review` and `flutter-validator` agents.
 - **requests/** — Incoming feature requests and change proposals. Initial input before PM converts to formal spec.
 - **archive/** — Historical specs and obsolete documentation. Reference only.
 - **decisions/** — Architecture Decision Records (ADRs), design patterns, and ecosystem-wide decisions.
