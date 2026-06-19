@@ -4,8 +4,8 @@ Scaffold a new repository contract (domain) and its implementation (data) for a 
 
 **Usage:** `/new-repository <feature_name> <repository_name>`
 
-- `<feature_name>` — snake_case feature name (e.g. `movies`, `user_profile`)
-- `<repository_name>` — snake_case repository name (e.g. `movies`, `trending_movies`)
+- `<feature_name>` — snake_case feature name (e.g. `items`, `user_profile`)
+- `<repository_name>` — snake_case repository name (e.g. `items`, `featured_items`)
 
 The full argument string is `$ARGUMENTS`.
 
@@ -14,7 +14,7 @@ The full argument string is `$ARGUMENTS`.
 1. Parse `$ARGUMENTS`:
    - First word → `<feature_name>` (snake_case)
    - Second word → `<repository_name>` (snake_case)
-2. Derive `<RepositoryName>` in PascalCase (e.g. `trending_movies` → `TrendingMovies`).
+2. Derive `<RepositoryName>` in PascalCase (e.g. `featured_items` → `FeaturedItems`).
 3. Check `features/<feature_name>/data/pubspec.yaml`:
    - If `injectable` is missing, add it: `injectable: any`
    - If `core` is missing, add it: `core:\n    path: ../../../core`

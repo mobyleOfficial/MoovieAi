@@ -4,11 +4,11 @@ Scaffold a new UI module under `ui/` following the project's UI architecture rul
 
 **Usage:** `/new-ui-module <module_name>`
 
-The argument `$ARGUMENTS` is the module name in `snake_case` (e.g. `profile`, `movie_detail`).
+The argument `$ARGUMENTS` is the module name in `snake_case` (e.g. `profile`, `item_detail`).
 
 ## Steps
 
-1. Derive the `PascalCase` class prefix from `$ARGUMENTS` (e.g. `movie_detail` → `MovieDetail`).
+1. Derive the `PascalCase` class prefix from `$ARGUMENTS` (e.g. `item_detail` → `ItemDetail`).
 2. Create the following files with the content below (substituting `<module_name>` and `<ModuleName>`):
 
 ### `ui/<module_name>/pubspec.yaml`

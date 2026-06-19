@@ -4,8 +4,8 @@ Scaffold a new data source inside a feature's data layer.
 
 **Usage:** `/new-datasource <feature_name> <datasource_name> <type>`
 
-- `<feature_name>` — snake_case feature name (e.g. `movies`, `user_profile`)
-- `<datasource_name>` — snake_case data source name (e.g. `movies`, `trending_movies`)
+- `<feature_name>` — snake_case feature name (e.g. `items`, `user_profile`)
+- `<datasource_name>` — snake_case data source name (e.g. `items`, `featured_items`)
 - `<type>` — one of `remote`, `local`, or `memory`
 
 The full argument string is `$ARGUMENTS`.
@@ -16,7 +16,7 @@ The full argument string is `$ARGUMENTS`.
    - First word → `<feature_name>` (snake_case)
    - Second word → `<datasource_name>` (snake_case)
    - Third word → `<type>` (`remote`, `local`, or `memory`)
-2. Derive `<DataSourceName>` in PascalCase (e.g. `trending_movies` → `TrendingMovies`).
+2. Derive `<DataSourceName>` in PascalCase (e.g. `featured_items` → `FeaturedItems`).
 3. Determine `<subfolder>` from `<type>`:
    - `remote` → `datasources/remote`
    - `local` → `datasources/local`
