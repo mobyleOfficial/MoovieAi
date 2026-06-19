@@ -15,12 +15,11 @@ The invoking message must specify a PR number (e.g. "review PR #12") or a PR URL
 
 ## Repository Context
 
-- Repo: `mobyleOfficial/MoovieAi`
+- Repo: resolve once at start — `REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)`. Use `$REPO` in every `gh api`/`gh pr` call below. If `gh repo view` fails, stop and report — do not assume a slug.
 - Main: `main` (release target)
 - Default base: `develop`
 - Reviewers live at `agents/reviewers/{security,bug-finder,architecture}.md`
 - Project rules: `rules/` (especially `NO_COAUTHORS`, `LOCAL_CLAUDE_CONFIG`, `PYTHON_ENVS`, `AI_AGNOSTIC_SUBMODULES`)
-- Audit reference: `research/2026-05-15-claude-config-audit.md`
 
 ---
 
@@ -41,14 +40,14 @@ If existing inline review comments exist on the PR:
 
 - List **root** comments only (skip replies — otherwise each reply re-triggers the resolution dance for its parent thread). Add `--paginate` so PRs with many discussions aren't truncated:
   ```bash
-  gh api --paginate repos/mobyleOfficial/MoovieAi/pulls/<N>/comments \
+  gh api --paginate "repos/$REPO/pulls/<N>/comments" \
     --jq '.[] | select(.in_reply_to_id == null) | {id, node_id, path, line, body, user: .user.login}'
   ```
 - For each root comment, read the file at the new HEAD commit (`gh pr view <N> --json headRefOid`).
 - If the issue described in the comment is no longer present:
   1. Post a reply on the thread:
      ```bash
-     gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments/<comment_id>/replies -X POST -f body="Resolved in <SHA>."
+     gh api "repos/$REPO/pulls/<N>/comments/<comment_id>/replies" -X POST -f body="Resolved in <SHA>."
      ```
   2. Mark the review thread as RESOLVED via GraphQL (collapses the thread in the GitHub UI; humans don't have to click "Resolve" per thread).
 
@@ -63,7 +62,7 @@ If existing inline review comments exist on the PR:
              }
            }
          }
-       }' -f owner=mobyleOfficial -f repo=MoovieAi -F pr=<N> \
+       }' -f owner="${REPO%/*}" -f repo="${REPO#*/}" -F pr=<N> \
        --jq ".data.repository.pullRequest.reviewThreads.nodes[] |
               select(.comments.nodes[0].databaseId == <comment_id>) |
               {id, isResolved}")
@@ -171,7 +170,7 @@ SHA=$(gh pr view <N> --json headRefOid --jq .headRefOid)
 For each finding, post:
 
 ```bash
-gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments -X POST \
+gh api "repos/$REPO/pulls/<N>/comments" -X POST \
   -f path="<path>" \
   -F line=<line> \
   -f side="RIGHT" \
