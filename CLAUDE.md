@@ -20,6 +20,7 @@ Child repositories do not need their own AI-specific documentation — they inhe
 MoovieAi/
 ├── moovie/           # Git submodule: Flutter frontend app
 ├── backend/          # Git submodule: Kotlin/Ktor backend
+├── kanjipro/         # Git submodule: KanjiPro Flutter app (kanji learning)
 ├── research/         # Research docs, analysis, design docs
 ├── plugins/          # Claude Code MCP plugins and servers
 ├── rules/            # Linting, formatting, ecosystem policies
@@ -93,6 +94,28 @@ export TMDB_API_KEY="your_bearer_token"
 - `src/` — Kotlin source code
 - `build.gradle.kts` — Build configuration
 - `Dockerfile` — Container configuration
+
+---
+
+### KanjiPro (Flutter)
+
+**Path:** `./kanjipro`
+**Tech Stack:** Flutter, Dart
+**Platforms:** Android, iOS
+**Repo:** https://github.com/mobyleOfficial/KanjiPro (MIT)
+**Purpose:** Standalone Flutter app for learning kanji. Shares the meta-repo's AI tooling (project-agnostic `flutter-*` agents resolve it as a target submodule).
+
+**Setup:**
+```bash
+cd kanjipro
+flutter pub get
+flutter run
+```
+
+**Development:**
+- Run: `flutter run`
+- Tests: `flutter test`
+- Linting: `flutter analyze`
 
 ---
 
