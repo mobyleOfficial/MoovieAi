@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-19
 **Branch:** `feature/generic-agents`
-**Status:** Approved (pending spec review)
+**Status:** Implemented
 
 ## Overview
 
