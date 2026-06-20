@@ -3,7 +3,7 @@
 **Date:** 2026-06-19
 **Repo:** https://github.com/mobyleOfficial/KanjiPro (submodule `kanjipro/`)
 **Branch context:** meta-repo `feature/generic-agents`
-**Status:** Approved (pending spec review)
+**Status:** Implemented
 
 ## Overview
 
@@ -80,6 +80,14 @@ become `learning` (the active pool). Remaining stay `locked` until a slot opens.
 
 **Level completion:** when all kanji in a level are `mastered`, the level shows 100%;
 sessions then draw only mastered reminders (so review continues at low intensity).
+
+**Same-session reappearance (implementation note):** the persistent scheduler above handles
+long-term mastery + difficulty weighting. The requirement that a just-missed kanji (especially a
+demoted mastered one) reappears *within the same session* is handled at the **session layer**
+(the quiz Cubit): on a wrong answer the kanji's `literal` is pushed into a short in-memory
+requeue and force-shown again within a few questions, bypassing the weighted picker for that
+re-show. `RecordAnswer` still demotes/decrements persistently; the requeue is transient and not
+persisted.
 
 ## Module Layout (mirrors moovie)
 
