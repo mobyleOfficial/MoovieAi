@@ -78,8 +78,17 @@ become `learning` (the active pool). Remaining stay `locked` until a slot opens.
 - Weighted-random pick; avoid immediately repeating the exact previous kanji unless it was
   just missed (the demotion/boost case explicitly *wants* a quick repeat).
 
-**Level completion:** when all kanji in a level are `mastered`, the level shows 100%;
-sessions then draw only mastered reminders (so review continues at low intensity).
+**Infinite quiz (no fixed session length):** the quiz runs continuously — there is no
+"N questions then a results screen". Each question is drawn by the scheduler from the active
+pool of 10 (plus ~`REMINDER_WEIGHT` mastered reminders). Mastering a kanji (10 correct) removes
+it from the pool and promotes a locked one in its place; a wrong answer decrements its hitCount
+by 1 and keeps it in the pool. The quiz screen shows the **current kanji's own mastery
+progress** (`hitCount / MASTERY_TARGET`), not a per-quiz question counter. The user exits via the
+back button; there is no end screen. Progress is per-kanji and persisted, so leaving and
+returning resumes exactly where they were.
+
+**Level completion:** when all kanji in a level are `mastered`, the level shows 100%; the quiz
+then draws only mastered reminders (so review continues at low intensity, still infinite).
 
 **Same-session reappearance (implementation note):** the persistent scheduler above handles
 long-term mastery + difficulty weighting. The requirement that a just-missed kanji (especially a
@@ -110,7 +119,7 @@ kanjipro/
 │   ├── common/lib/                    # theme (light/dark), shared widgets, TtsService, l10n (app_en.arb, app_pt.arb)
 │   ├── home_ui/lib/                   # level selection (N5..N1) with progress %
 │   ├── study_ui/lib/                  # flashcards: literal + on + kun + meaning + TTS
-│   └── quiz_ui/lib/                   # mode select → MC quiz → results
+│   └── quiz_ui/lib/                   # mode select → infinite MC quiz (per-kanji mastery)
 ├── lib/
 │   ├── di/                            # injectable config + per-feature modules
 │   ├── routes/                        # auto_route config
@@ -208,7 +217,7 @@ Per `rules/AI_AGNOSTIC_SUBMODULES.md`, the `kanjipro/` repo contains **no** `CLA
 4. `home_ui` (level list with progress).
 5. `study_ui` (flashcards + TtsService).
 6. `progress` feature (ObjectBox) + scheduler use cases + tests.
-7. `quiz` feature domain + `quiz_ui` (3 modes, MC, results) wired to scheduler + tests.
+7. `quiz` feature domain + `quiz_ui` (3 modes, MC, infinite, per-kanji mastery) wired to scheduler + tests.
 
 **Vertical-slice recommendation:** wire N5 + study + one quiz mode end-to-end (steps 1–6 for N5,
 one mode in step 7) before fanning out to all modes/levels. Dataset is generated full N5–N1
