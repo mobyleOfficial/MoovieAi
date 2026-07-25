@@ -192,10 +192,10 @@ abstract class MovieModule {
 
 ## References
 
-- [Frontend Architecture Rules](../../rules/frontend/feature-architecture.md) — Feature structure
-- [Frontend Implementation Rules](../../rules/frontend/feature-implementation.md) — Code style
-- [Frontend Testing Rules](../../rules/frontend/feature-testing.md) — Test patterns
-- [Implementer-Tester Agent](../../agents/implementer-tester.md) — Agent guide
+- [Frontend Architecture Rules](../../../rules/frontend/feature-architecture.md) — Feature structure
+- [Frontend Implementation Rules](../../../rules/frontend/feature-implementation.md) — Code style
+- [Frontend Testing Rules](../../../rules/frontend/feature-testing.md) — Test patterns
+- [Implementer-Tester Agent](../../../agents/implementer-tester.md) — Agent guide
 - [Hooks Documentation](../../hooks/README.md) — Validation hooks
 
 ## Next: Start a Feature

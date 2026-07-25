@@ -146,13 +146,13 @@ Project-wide rules live in [`rules/`](rules). Each rule is enforced by a hook li
 
 | Rule | Summary |
 |------|---------|
-| [NO_COAUTHORS](rules/NO_COAUTHORS.md) | Single author per commit. No `Co-Authored-By` trailers in commits / PRs / issues. |
-| [AI_AGNOSTIC_SUBMODULES](rules/AI_AGNOSTIC_SUBMODULES.md) | Child repos (`moovie`, `backend`) must remain AI-agnostic. No `CLAUDE.md`, `.claude/`, `.cursorrules`, `copilot-instructions.md`, `AGENTS.md` inside submodules. |
-| [LOCAL_CLAUDE_CONFIG](rules/LOCAL_CLAUDE_CONFIG.md) | All `.claude/` + `.mcp.json` config uses portable relative paths. No `~/` or absolute user paths. |
-| [PYTHON_ENVS](rules/PYTHON_ENVS.md) | All Python `pip` / `uv` / `poetry` / `conda install` calls must run inside an active virtualenv. |
-| [DOCS_UP_TO_DATE](rules/DOCS_UP_TO_DATE.md) | Public-surface changes must update docs in the same PR. Enforced by `check-docs-sync.sh` on `gh pr create` / `git push`. |
+| [NO_COAUTHORS](rules/common/NO_COAUTHORS.md) | Single author per commit. No `Co-Authored-By` trailers in commits / PRs / issues. |
+| [AI_AGNOSTIC_SUBMODULES](rules/common/AI_AGNOSTIC_SUBMODULES.md) | Child repos (`moovie`, `backend`) must remain AI-agnostic. No `CLAUDE.md`, `.claude/`, `.cursorrules`, `copilot-instructions.md`, `AGENTS.md` inside submodules. |
+| [LOCAL_CLAUDE_CONFIG](rules/common/LOCAL_CLAUDE_CONFIG.md) | All `.claude/` + `.mcp.json` config uses portable relative paths. No `~/` or absolute user paths. |
+| [PYTHON_ENVS](rules/common/PYTHON_ENVS.md) | All Python `pip` / `uv` / `poetry` / `conda install` calls must run inside an active virtualenv. |
+| [DOCS_UP_TO_DATE](rules/common/DOCS_UP_TO_DATE.md) | Public-surface changes must update docs in the same PR. Enforced by `check-docs-sync.sh` on `gh pr create` / `git push`. |
 
-Lint rules (Flutter-side, applied by `implementer-tester` agent): [`accessibility`](rules/accessibility.md), [`feature-architecture`](rules/feature-architecture.md), [`feature-implementation`](rules/feature-implementation.md), [`feature-testing`](rules/feature-testing.md), [`localization`](rules/localization.md), [`ui-architecture`](rules/ui-architecture.md), [`variable-naming`](rules/variable-naming.md).
+Lint rules (Flutter-side, applied by `implementer-tester` agent): [`accessibility`](rules/frontend/accessibility.md), [`feature-architecture`](rules/frontend/feature-architecture.md), [`feature-implementation`](rules/frontend/feature-implementation.md), [`feature-testing`](rules/frontend/feature-testing.md), [`localization`](rules/frontend/localization.md), [`ui-architecture`](rules/frontend/ui-architecture.md), [`variable-naming`](rules/common/variable-naming.md).
 
 See [CLAUDE.md](CLAUDE.md) § Critical Rules for enforcement details and [rules/README.md](rules/README.md) for the enforcement map.
 

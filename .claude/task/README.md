@@ -166,16 +166,16 @@ See [task/backend/template.md](backend/template.md) — Focus on:
 ## References
 
 ### Frontend
-- [Feature Architecture Rules](../rules/frontend/feature-architecture.md)
-- [Implementation Rules](../rules/frontend/feature-implementation.md)
-- [Testing Rules](../rules/frontend/feature-testing.md)
-- [Implementer-Tester Agent](../agents/implementer-tester.md)
+- [Feature Architecture Rules](../../rules/frontend/feature-architecture.md)
+- [Implementation Rules](../../rules/frontend/feature-implementation.md)
+- [Testing Rules](../../rules/frontend/feature-testing.md)
+- [Implementer-Tester Agent](../../agents/implementer-tester.md)
 
 ### Backend
-- [Backend Architecture Rules](../rules/backend/backend-architecture.md)
-- [Implementation Rules](../rules/backend/backend-implementation.md)
-- [Testing Rules](../rules/backend/backend-testing.md)
-- [Backend-Implementer Agent](../agents/backend-implementer.md)
+- [Backend Architecture Rules](../../rules/backend/backend-architecture.md)
+- [Implementation Rules](../../rules/backend/backend-implementation.md)
+- [Testing Rules](../../rules/backend/backend-testing.md)
+- [Backend-Implementer Agent](../../agents/backend-implementer.md)
 
 ### Shared
 - [Hooks Documentation](../hooks/README.md)

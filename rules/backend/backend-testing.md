@@ -1,238 +1,145 @@
----
-description: Rules for testing Kotlin/Ktor backend features
-globs: backend/src/test/kotlin/**/*.kt
----
+# Backend Testing Rule
 
-# Backend Testing Rules
-
-Testing patterns and requirements for Kotlin/Ktor backend code.
+Applies to: `backend/src/test/kotlin/`. Aligns with [`backend-architecture.md`](backend-architecture.md).
 
 ## Test Structure
 
-### Test File Naming
-```
-src/test/kotlin/org/mobyle/
-├── domain/usecase/
-│   └── GetTrendingMoviesTest.kt          # Class + Test suffix
-├── data/remote/
-│   └── TmdbDataSourceImplTest.kt
-├── data/repository/
-│   └── MoviesRepositoryImplTest.kt
-└── presentation/routing/
-    └── MoviesRoutingTest.kt
-```
+`backend/src/test/kotlin/org/mobyle/` mirrors `main/`. One test class per production class; file naming `*Test.kt`.
 
-### Test Class Structure
+Existing tests (the auth feature is the reference shape to follow):
+- `routing/AuthRoutingTest.kt` tests `routing/AuthRouting.kt`
+- `domain/usecase/auth/LoginUserTest.kt` tests `domain/usecase/auth/LoginUser.kt`
+- `domain/usecase/auth/LogoutUserTest.kt` tests `domain/usecase/auth/LogoutUser.kt`
+- `data/repository/AuthRepositoryImplTest.kt` tests `data/repository/AuthRepositoryImpl.kt`
+- `data/util/JWTUtilTest.kt` tests `data/util/JWTUtil.kt`
+- `data/local/auth/TokenBlocklistDataSourceTest.kt` tests `data/local/auth/TokenBlocklistDataSource.kt`
+
+The movies, profile, and activities packages have no tests yet — adding them means creating `routing/MoviesRoutingTest.kt`, `domain/usecase/movies/GetTrendingMoviesTest.kt`, `data/remote/TmdbDataSourceImplTest.kt`, `data/remote/MappersTest.kt`, and so on, mirroring the same paths.
+
+## Unit Tests
+
+- Use case tests and mapper tests use plain JUnit 5 (no Ktor harness needed); `build.gradle.kts` enables `useJUnitPlatform()` at line 69
+- Test deps are already declared in `backend/build.gradle.kts` (lines 49-54) — no need to add them: `ktor-server-tests:2.3.0`, `kotlin("test")`, `mockk:1.13.12`, `kotlinx-coroutines-test:1.8.1`, `h2:2.2.224`
+- **Known build issue:** `junit:junit:4.13.2` is also declared while the runner is `useJUnitPlatform()` (JUnit 5). JUnit 4-style tests are silently *not collected* unless `junit-vintage-engine` is added. Write tests against JUnit 5 (`org.junit.jupiter.api.Test`) or `kotlin.test`, never `org.junit.Test`
+- Use cases call `runBlocking` internally, so tests can call them synchronously without coroutine wrappers
+- Mock injected repository/datasource dependencies via MockK (`val repository = mockk<MoviesRepository>()`)
+- Each public function gets at least 1 test covering the happy path and at least 1 covering the failure path (e.g. empty result, datasource exception)
+
+Example use-case test shape:
 ```kotlin
 class GetTrendingMoviesTest {
-
-    private lateinit var repository: MoviesRepository
-    private lateinit var usecase: GetTrendingMovies
-
-    @Before
-    fun setup() {
-        repository = mockk()
-        usecase = GetTrendingMovies(repository)
-    }
-
-    @Test
-    fun `should return movies for valid page number`() {
-        // Given
-        val page = 1
-        val expected = MovieListing(emptyList(), 0, 0, 0)
-        coEvery { repository.getTrendingMovies(page) } returns expected
-
-        // When
-        val result = usecase(page)
-
-        // Then
-        assertEquals(expected, result)
-    }
-}
-```
-
-## Testing Layers
-
-### Domain Layer Tests (UseCases)
-
-Test that usecases orchestrate repository calls correctly:
-```kotlin
-class GetTrendingMoviesTest {
-
     private val repository = mockk<MoviesRepository>()
-    private val usecase = GetTrendingMovies(repository)
+    private val useCase = GetTrendingMovies(repository)
 
     @Test
-    fun `should call repository with correct page number`() {
-        val page = 2
-        coEvery { repository.getTrendingMovies(page) } returns
-            MovieListing(emptyList(), 0, 0, 0)
-
-        usecase(page)
-
-        coVerify { repository.getTrendingMovies(page) }
+    fun `returns movie listing from repository`() {
+        val expected = MovieListing(totalPages = 1, totalResults = 1, movies = listOf(/* fixture */))
+        coEvery { repository.getTrendingMovies(1) } returns expected
+        assertEquals(expected, useCase(1))
     }
 
     @Test
-    fun `should return repository result directly`() {
-        val expected = MovieListing(
-            movies = listOf(Movie(id = 1, title = "Test")),
-            totalResults = 1,
-            totalPages = 1,
-            page = 1
-        )
-        coEvery { repository.getTrendingMovies(any()) } returns expected
-
-        val result = usecase(1)
-
-        assertEquals(expected, result)
+    fun `propagates repository exception`() {
+        coEvery { repository.getTrendingMovies(any()) } throws RuntimeException("fail")
+        assertThrows<RuntimeException> { useCase(1) }
     }
 }
 ```
 
-### Data Layer Tests (Repositories)
+Note: use `coEvery { ... }` (not `every { runBlocking { ... } }`) for suspend-function stubs — MockK throws `MockKException: Missing calls inside every { } block` with the `runBlocking` form. Because production use-case `invoke` functions call `runBlocking` internally, the test body itself does not need a coroutine wrapper.
 
-Test that repositories map DTOs to domain models:
+## Route Tests
+
+Use Ktor's `testApplication { ... }` harness (provided by `ktor-server-tests:2.3.0`). Because `configureKoin()` installs `dataModule` which throws `IllegalStateException` if `TMDB_API_KEY` is unset (lazily on first request), Koin must be replaced with a test module BEFORE `testApplication` starts — not inside `application { }`:
+
 ```kotlin
-class MoviesRepositoryImplTest {
-
-    private val datasource = mockk<TmdbDataSource>()
-    private val repository = MoviesRepositoryImpl(datasource)
-
-    @Test
-    fun `should map datasource response to domain model`() {
-        // Given
-        val dtoResponse = TmdbMovieListResponse(
-            page = 1,
-            results = listOf(
-                TmdbMovie(id = 1, title = "Movie 1")
-            ),
-            totalPages = 1,
-            totalResults = 1
-        )
-        coEvery { datasource.getTrendingMovies(any()) } returns dtoResponse
-
-        // When
-        val result = repository.getTrendingMovies(1)
-
-        // Then
-        assertEquals(1, result.movies.size)
-        assertEquals("Movie 1", result.movies[0].title)
+@Test
+fun `GET trending movies returns 200`() {
+    stopKoin()  // tear down any previously started Koin instance
+    startKoin {
+        modules(testDataModule)  // test module overriding dataModule; provides mocked TmdbDataSource
     }
-
-    @Test
-    fun `should propagate datasource exceptions`() {
-        coEvery { datasource.getTrendingMovies(any()) } throws
-            IOException("Network error")
-
-        assertFailsWith<IOException> {
-            runBlocking { repository.getTrendingMovies(1) }
-        }
+    testApplication {
+        // Do NOT call configureKoin() here — Koin is already running with test doubles
+        application { configureRouting(); configureStatusPages() }
+        val response = client.get("/movies/trending?page=1")
+        assertEquals(HttpStatusCode.OK, response.status)
     }
 }
 ```
 
-### Data Source Tests (HTTP Client)
+Where `testDataModule` is a Koin module that binds `TmdbDataSource`, all `*Repository` implementations, and all use cases with MockK doubles (or in-memory stubs) so no real TMDB call is made. Keep route tests focused on HTTP contract (status codes, response shape) — not domain logic.
 
-Test that datasources correctly format HTTP requests:
+## TMDB Mocking
+
+- Never call the real TMDB API in tests; all tests must pass with `TMDB_API_KEY` unset
+- Mock `TmdbDataSource` via MockK; return DTO fixture instances constructed inline or loaded from `src/test/resources/tmdb/<endpoint>.json`
+- For HTTP-level tests of `TmdbDataSourceImpl`, use Ktor's `MockEngine` with canned response bodies rather than a real `HttpClient(CIO)`:
+
 ```kotlin
-class TmdbDataSourceImplTest {
-
-    private val httpClient = mockk<HttpClient>()
-    private val datasource = TmdbDataSourceImpl(httpClient)
-
-    @Test
-    fun `should request trending endpoint with page parameter`() {
-        val response = mockk<HttpResponse>()
-        coEvery { response.body<TmdbMovieListResponse>() } returns
-            TmdbMovieListResponse()
-        coEvery {
-            httpClient.get("trending/movie/week", any())
-        } returns response
-
-        datasource.getTrendingMovies(page = 2)
-
-        coVerify {
-            httpClient.get("trending/movie/week", any())
-        }
-    }
-
-    @Test
-    fun `should include all optional parameters when provided`() {
-        val response = mockk<HttpResponse>()
-        coEvery { response.body<TmdbMovieListResponse>() } returns
-            TmdbMovieListResponse()
-        coEvery { httpClient.get(any(), any()) } returns response
-
-        datasource.discoverMovies(
-            page = 1,
-            year = 2024,
-            genres = "28,12",  // Action, Adventure
-            language = "en"
-        )
-
-        coVerify {
-            httpClient.get("discover/movie", any())
-        }
-    }
+val mockEngine = MockEngine { request ->
+    respond(
+        content = ByteReadChannel(File("src/test/resources/tmdb/trending.json").readText()),
+        status = HttpStatusCode.OK,
+        headers = headersOf(HttpHeaders.ContentType, "application/json")
+    )
 }
+val client = HttpClient(mockEngine) { install(ContentNegotiation) { json() } }
+val ds = TmdbDataSourceImpl(client)
 ```
 
-## Testing Best Practices
+- Rate-limit test: configure `MockEngine` to return HTTP 429; assert that the client or repository layer throws the appropriate exception (once `TmdbRateLimitedException` is introduced per `backend-architecture.md`)
 
-### Use Mock Framework
+## Coverage Expectations
+
+- All route handlers: 1 happy-path + 1 error-path test (at minimum: missing/invalid param → 400, valid param → 200/201)
+- All use case `invoke` functions: at least 1 unit test each (happy path + exception propagation)
+- All `TmdbDataSourceImpl` methods: 1 success test + 1 rate-limit/error test
+- All mapper extension functions in `Mappers.kt`: at least 1 round-trip test per domain type
+- `./gradlew test` must pass (zero failures) before any PR opens
+
+No numeric coverage percentage gate — gate is on the per-class expectations above.
+
+## Test Style
+
+### Names describe behavior, not implementation
+
 ```kotlin
-// Good - using mockk for Kotlin
-import io.mockk.mockk
-import io.mockk.coEvery
-import io.mockk.coVerify
-
-val repository = mockk<MoviesRepository>()
-coEvery { repository.getTrendingMovies(any()) } returns MovieListing(...)
-coVerify { repository.getTrendingMovies(1) }
-
-// Bad - manual mocks (error-prone)
-class FakeRepository : MoviesRepository {
-    override suspend fun getTrendingMovies(page: Int): MovieListing = ...
-}
-```
-
-### Test Names Describe Behavior
-```kotlin
-// Good - describes what is being tested and expected outcome
+// Good — states the condition and the expected outcome
 fun `should return empty list when no movies available`() { }
 fun `should throw exception when network fails`() { }
-fun `should map DTO to domain model correctly`() { }
 fun `should include sort parameter only when provided`() { }
 
-// Bad - vague or implementation-focused names
+// Bad — vague or method-name echoes
 fun `test getTrendingMovies`() { }
-fun `test method1`() { }
 fun `test response parsing`() { }
 ```
 
-### Arrange-Act-Assert Pattern
+### Arrange-Act-Assert
+
 ```kotlin
 @Test
 fun `should return movies sorted by popularity`() {
-    // Arrange - set up test data
+    // Arrange
     val movies = listOf(
         Movie(id = 1, title = "Popular", voteAverage = 9.0),
         Movie(id = 2, title = "Less Popular", voteAverage = 5.0)
     )
     coEvery { repository.getTrendingMovies(1) } returns
-        MovieListing(movies = movies, totalResults = 2, totalPages = 1, page = 1)
+        MovieListing(movies = movies, totalResults = 2, totalPages = 1)
 
-    // Act - perform the action
-    val result = usecase(1)
+    // Act
+    val result = useCase(1)
 
-    // Then - assert the outcome
+    // Assert
     assertEquals("Popular", result.movies[0].title)
-    assertEquals("Less Popular", result.movies[1].title)
 }
 ```
 
-### Test Edge Cases
+### Cover edge cases explicitly
+
+Empty collections, null optional fields, and boundary values each get their own test — they are the cases TMDB responses actually vary on:
+
 ```kotlin
 @Test
 fun `should handle empty results`() {
@@ -247,103 +154,10 @@ fun `should handle empty results`() {
 
 @Test
 fun `should handle null optional fields`() {
-    val movie = TmdbMovie(
-        id = 1,
-        title = "Test",
-        posterPath = null,      // Optional field
-        releaseDate = null      // Optional field
-    )
+    val movie = TmdbMovie(id = 1, title = "Test", posterPath = null, releaseDate = null)
 
     val domainMovie = movie.toDomain()
 
-    assertEquals(1, domainMovie.id)
     assertNull(domainMovie.posterPath)
 }
 ```
-
-## Suspend Function Testing
-
-### Test Suspend Functions with runBlocking
-```kotlin
-@Test
-fun `should fetch and return movies`() = runBlocking {
-    coEvery { datasource.getTrendingMovies(1) } returns
-        TmdbMovieListResponse(
-            results = listOf(TmdbMovie(id = 1, title = "Test"))
-        )
-
-    val result = repository.getTrendingMovies(1)
-
-    assertEquals(1, result.movies.size)
-}
-```
-
-Or use `coRunBlocking` from kotlinx-coroutines-test:
-```kotlin
-@Test
-fun `should handle coroutine exceptions`() = runBlocking {
-    coEvery { datasource.getTrendingMovies(any()) } throws
-        Exception("Network error")
-
-    assertFailsWith<Exception> {
-        repository.getTrendingMovies(1)
-    }
-}
-```
-
-## Coverage Requirements
-
-### Required Test Coverage
-- **All public usecases** — At least 1 test per public method
-- **All repository implementations** — Test mapping and datasource delegation
-- **Error cases** — Test exception handling and validation
-- **Edge cases** — Empty lists, null values, boundary conditions
-
-### Optional Test Coverage
-- **DataSource HTTP calls** — Only if custom logic beyond Ktor client
-- **Serialization** — If custom JSON mapping beyond @Serializable
-- **Routing** — Integration tests with mock DI if critical
-
-## Test Dependencies
-
-### Required in build.gradle.kts
-```kotlin
-testImplementation("io.mockk:mockk:1.13.0")
-testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.0")
-testImplementation("junit:junit:4.13.2")
-testImplementation("org.assertj:assertj-core:3.23.0")
-```
-
-### Example Test Setup
-```kotlin
-import io.mockk.mockk
-import io.mockk.coEvery
-import io.mockk.coVerify
-import kotlinx.coroutines.runBlocking
-import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-
-class UsecaseTest {
-    private val repository = mockk<Repository>()
-
-    @Test
-    fun test() = runBlocking {
-        // test code
-    }
-}
-```
-
-## Continuous Integration
-
-### Run Tests Locally Before Push
-```bash
-./gradlew test
-```
-
-### CI Will Run
-```bash
-./gradlew clean test
-```
-
-All tests must pass before PR merge. Failing tests block merge.
