@@ -22,7 +22,7 @@ Create a repository contract in the domain layer and its implementation in the d
 ## Generated Structure
 
 ```
-moovie/features/<feature>/
+muuvie/features/<feature>/
 ├── domain/lib/repositories/
 │   └── <feature>_repository.dart           (contract - pure domain)
 └── data/lib/repositories/
@@ -32,7 +32,7 @@ moovie/features/<feature>/
 ## Domain Repository Pattern
 
 ```dart
-// moovie/features/<feature>/domain/lib/repositories/<feature>_repository.dart
+// muuvie/features/<feature>/domain/lib/repositories/<feature>_repository.dart
 
 abstract interface class <Feature>Repository {
   Future<Result<DomainModel>> methodName({required Type param});
@@ -42,7 +42,7 @@ abstract interface class <Feature>Repository {
 ## Data Repository Implementation Pattern
 
 ```dart
-// moovie/features/<feature>/data/lib/repositories/<feature>_repository_impl.dart
+// muuvie/features/<feature>/data/lib/repositories/<feature>_repository_impl.dart
 
 import 'package:core/core.dart';
 import 'package:injectable/injectable.dart';

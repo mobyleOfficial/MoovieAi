@@ -15,7 +15,7 @@ Authentication is the gateway to personalized features (profiles, reviews, watch
 ### User Story 1: Login with Google
 **As a** new or returning user
 **I want to** sign in using my Google account
-**So that** I can access my personalized Moovie experience without creating a new account
+**So that** I can access my personalized Muuvie experience without creating a new account
 
 ### User Story 2: Login with Facebook
 **As a** new or returning user
@@ -187,7 +187,7 @@ All remote interactions are mocked at the data source level:
 
 ## Cross-Repo Impact
 
-- **Frontend (moovie):** New `auth` feature package, new `auth_ui` UI module, DI module, route changes
+- **Frontend (muuvie):** New `auth` feature package, new `auth_ui` UI module, DI module, route changes
 - **Backend:** Will need `POST /api/auth/oauth` endpoint (not part of this scope — mocked)
 - **Shared:** Auth token will eventually be injected as a header in the backend `Dio` instance for authenticated requests
 

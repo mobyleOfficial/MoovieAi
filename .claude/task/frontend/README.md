@@ -1,6 +1,6 @@
 # Frontend Feature Pipeline
 
-Structured task tracking for Flutter/Dart frontend features using the MoovieAi pipeline.
+Structured task tracking for Flutter/Dart frontend features using the MuuvieAi pipeline.
 
 ## Directory Structure
 
@@ -30,7 +30,7 @@ task/frontend/
        (Feasibility review, approval/rejection)
 
 4. Implement (/implementer-tester)
-   └─> moovie/{features,ui,lib}/**
+   └─> muuvie/{features,ui,lib}/**
        (Uses /new-* Flutter/Dart skills)
        └─> Datasource → Repository → Usecase → UI Module
 
@@ -70,7 +70,7 @@ cp task/frontend/template.md task/frontend/requests/comments-screen.md
 ```bash
 /implementer-tester
 # Reads: research/specs/comments-screen.md
-# Generates: moovie/{features,ui,lib}/**
+# Generates: muuvie/{features,ui,lib}/**
 # Uses: /new-datasource, /new-repository, /new-usecase, /new-ui-module
 ```
 

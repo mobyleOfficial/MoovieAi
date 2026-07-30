@@ -60,7 +60,7 @@ CRITICAL_CHANGES=(
   "^plugins/"                           # Plugin changes
   "^agents/"                            # Agents changes
   "^rules/"                             # Rules changes
-  "^moovie/" "^backend/"                # Submodule structure changes
+  "^muuvie/" "^backend/"                # Submodule structure changes
 )
 
 HAS_CRITICAL_CHANGE=0
@@ -80,7 +80,7 @@ if [ "$HAS_CRITICAL_CHANGE" -eq 1 ] && [ "$DOCS_MODIFIED" -eq 0 ]; then
   echo "⚠️  Documentation out of sync"
   echo ""
   echo "Critical files changed:"
-  echo "$CHANGED_FILES" | grep -E "^\.claude/|^plugins/|^agents/|^rules/|^moovie/|^backend/|package\.json|gradle|pubspec\.yaml|Gemfile|\.env|docker" | sed 's/^/  - /'
+  echo "$CHANGED_FILES" | grep -E "^\.claude/|^plugins/|^agents/|^rules/|^muuvie/|^backend/|package\.json|gradle|pubspec\.yaml|Gemfile|\.env|docker" | sed 's/^/  - /'
   echo ""
   echo "README.md and/or CLAUDE.md should be updated."
   echo "Update docs before opening PR to keep team in sync."

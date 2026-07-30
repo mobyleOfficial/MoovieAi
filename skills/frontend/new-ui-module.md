@@ -1,6 +1,6 @@
 ---
 name: new-ui-module
-description: Scaffold a new UI module (state/bloc/screen) following the MoovieAi pattern
+description: Scaffold a new UI module (state/bloc/screen) following the MuuvieAi pattern
 ---
 
 # New UI Module Scaffold
@@ -24,7 +24,7 @@ Create a complete UI module with state class, Cubit bloc, and screen widget.
 Each UI module contains exactly 3 files in its own directory:
 
 ```
-moovie/ui/<module>/lib/<screen_name_snake_case>/
+muuvie/ui/<module>/lib/<screen_name_snake_case>/
 ├── <screen_name_snake_case>_state.dart       (sealed class with states)
 ├── <screen_name_snake_case>_bloc.dart        (Cubit implementation)
 └── <screen_name_snake_case>_screen.dart      (@RoutePage widget)
@@ -33,7 +33,7 @@ moovie/ui/<module>/lib/<screen_name_snake_case>/
 ## State Pattern
 
 ```dart
-// moovie/ui/<module>/lib/<screen_name_snake_case>/<screen_name_snake_case>_state.dart
+// muuvie/ui/<module>/lib/<screen_name_snake_case>/<screen_name_snake_case>_state.dart
 
 import 'package:<feature>/...dart';
 
@@ -61,7 +61,7 @@ class <ScreenName>Error extends <ScreenName>State {
 ## Bloc Pattern
 
 ```dart
-// moovie/ui/<module>/lib/<screen_name_snake_case>/<screen_name_snake_case>_bloc.dart
+// muuvie/ui/<module>/lib/<screen_name_snake_case>/<screen_name_snake_case>_bloc.dart
 
 import 'package:core/core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -96,7 +96,7 @@ class <ScreenName>Cubit extends Cubit<<ScreenName>State> {
 ## Screen Pattern
 
 ```dart
-// moovie/ui/<module>/lib/<screen_name_snake_case>/<screen_name_snake_case>_screen.dart
+// muuvie/ui/<module>/lib/<screen_name_snake_case>/<screen_name_snake_case>_screen.dart
 
 import 'package:auto_route/auto_route.dart';
 import 'package:common/common.dart';

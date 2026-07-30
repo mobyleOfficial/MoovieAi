@@ -1,10 +1,10 @@
 # Skills
 
-Custom Claude workflows and scaffolding skills for automation and repeated patterns in the MoovieAi ecosystem.
+Custom Claude workflows and scaffolding skills for automation and repeated patterns in the MuuvieAi ecosystem.
 
 ## Feature Scaffolding Skills
 
-These skills generate boilerplate code following established patterns in the moovie Flutter app:
+These skills generate boilerplate code following established patterns in the muuvie Flutter app:
 
 - **`/new-usecase`** — Scaffold a new usecase in a feature's domain layer
 - **`/new-datasource`** — Scaffold a remote or local datasource (contract + implementation)
@@ -13,7 +13,7 @@ These skills generate boilerplate code following established patterns in the moo
 
 ## Ecosystem Skills
 
-- **`moovie-research-format`** — Standardized format for design docs, architecture decisions, and research documentation
+- **`muuvie-research-format`** — Standardized format for design docs, architecture decisions, and research documentation
 - **`setting-up-linear-mcp`** — Configure Linear MCP at project level with workspace scoping and secure token storage
 - **`verify-docs-before-pr`** — Documentation verification before PR creation
 

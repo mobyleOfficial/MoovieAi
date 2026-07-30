@@ -16,7 +16,7 @@ A change touches docs if it modifies any of:
 - `plugins/`
 - `agents/`
 - `rules/`
-- Public APIs in `moovie/` or `backend/` (request/response shape, exported types, public functions)
+- Public APIs in `muuvie/` or `backend/` (request/response shape, exported types, public functions)
 - Build / setup commands (any `package.json`, `gradle`, `pubspec.yaml`, `Gemfile`, `.env`, docker)
 - Directory structure (add / move / delete top-level dirs or feature modules)
 

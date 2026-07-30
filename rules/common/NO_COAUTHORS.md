@@ -1,6 +1,6 @@
 # No Coauthors Policy
 
-**Rule:** Never use coauthors (Co-Authored-By) in commits, PRs, or issues across all child repositories (moovie, backend, etc).
+**Rule:** Never use coauthors (Co-Authored-By) in commits, PRs, or issues across all child repositories (muuvie, backend, etc).
 
 ## Why
 

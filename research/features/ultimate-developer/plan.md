@@ -41,8 +41,8 @@
 
 ## Conventions Used Throughout
 
-- **Working directory:** All commands assume PWD = meta-repo root (`MoovieAi/`). Set once at start: `cd <path-to-MoovieAi>`. The plan uses relative paths thereafter (e.g., `rules/backend-architecture.md`, not absolute `/Users/.../MoovieAi/rules/...`). Submodule commands explicitly note when to `cd <submodule>`.
-- **Repo variable:** Set `REPO=mobyleOfficial/MoovieAi` once at top of any shell session that uses `gh api` raw calls (calls without `gh pr`/`gh repo` shortcuts). Use `gh api repos/${REPO}/...` thereafter so this plan is reusable in forks.
+- **Working directory:** All commands assume PWD = meta-repo root (`MuuvieAi/`). Set once at start: `cd <path-to-MuuvieAi>`. The plan uses relative paths thereafter (e.g., `rules/backend-architecture.md`, not absolute `/Users/.../MuuvieAi/rules/...`). Submodule commands explicitly note when to `cd <submodule>`.
+- **Repo variable:** Set `REPO=mobyleOfficial/MuuvieAi` once at top of any shell session that uses `gh api` raw calls (calls without `gh pr`/`gh repo` shortcuts). Use `gh api repos/${REPO}/...` thereafter so this plan is reusable in forks.
 - **Temp files:** Use `mktemp` for scratch files (`SMOKE=$(mktemp -t ud-smoke.XXXXXX); trap 'rm -f "$SMOKE"' EXIT`), never hardcoded `/tmp/test-*.sh` (multi-user collision risk). The X's MUST be the trailing characters of the template — GNU mktemp rejects templates like `ud-smoke.XXXXXX.sh` where extra characters follow the X's. The `trap ... EXIT` ensures cleanup even on early script failure or Ctrl-C; explicit `rm "$SMOKE"` at end of task remains as belt-and-suspenders and becomes a no-op if trap already fired.
 - **Branch:** Stay on the user's current working branch unless explicitly told to cut a new one. The execution model is: this is a feature branch in the meta-repo; we are implementing the feature in-place.
 - **Commits:** Conventional Commits (`feat:`, `doc:`, `chore:`, `fix:`, `test:`). No co-author trailers (NO_COAUTHORS rule).
@@ -65,7 +65,7 @@ pwd
 git status --short
 git branch --show-current
 ```
-Expected: working dir = meta-repo root (`MoovieAi/`), branch reported, status may show the existing `research/features/` from spec.
+Expected: working dir = meta-repo root (`MuuvieAi/`), branch reported, status may show the existing `research/features/` from spec.
 
 - [ ] **Step 2: Confirm required tools available**
 
@@ -73,7 +73,7 @@ Run:
 ```bash
 which jq gh git && gh auth status
 ```
-Expected: all three present; `gh auth status` shows authenticated to `mobyleOfficial/MoovieAi`. If `gh` not authed → stop, escalate to user.
+Expected: all three present; `gh auth status` shows authenticated to `mobyleOfficial/MuuvieAi`. If `gh` not authed → stop, escalate to user.
 
 - [ ] **Step 3: Confirm submodules initialized**
 
@@ -81,7 +81,7 @@ Run:
 ```bash
 git submodule status
 ```
-Expected: lines for `moovie` and `backend` (no leading `-` indicating uninitialized). If uninitialized → run `git submodule update --init --recursive`.
+Expected: lines for `muuvie` and `backend` (no leading `-` indicating uninitialized). If uninitialized → run `git submodule update --init --recursive`.
 
 - [ ] **Step 4: No commit. Move on.**
 
@@ -523,7 +523,7 @@ When the invoking prompt contains `mode: "audit-only"`:
   "recommendations": [
     {"area": "<what>", "guidance": "<concrete advice>"}
   ],
-  "cross_repo_impact": "<sentence describing moovie/backend split or 'none'>",
+  "cross_repo_impact": "<sentence describing muuvie/backend split or 'none'>",
   "findings": [
     {
       "severity": "critical" | "high" | "medium" | "low",
@@ -619,7 +619,7 @@ grep -qF 'slug=' agents/implementer-tester.md && grep -qF 'research/features/' a
 ```
 Expected: FAIL.
 
-- [ ] **Step 2: Add a "Reading the Spec / Plan" section near the top of the agent prompt (after "Context: MoovieAi Ecosystem")**
+- [ ] **Step 2: Add a "Reading the Spec / Plan" section near the top of the agent prompt (after "Context: MuuvieAi Ecosystem")**
 
 ```markdown
 ## Reading the Spec & Plan
@@ -846,9 +846,9 @@ model: sonnet
 
 You implement features in the **backend** (Kotlin/Ktor) submodule following the architecture in `rules/backend-architecture.md`. Wrong DI registration or untyped responses cause runtime failures the frontend cannot recover from.
 
-## Context: MoovieAi Ecosystem
+## Context: MuuvieAi Ecosystem
 
-- **moovie/** — Flutter frontend (consumes your endpoints)
+- **muuvie/** — Flutter frontend (consumes your endpoints)
 - **backend/** — Kotlin/Ktor backend (where you work)
 
 ## Required Reading (Every Run)
@@ -1057,7 +1057,7 @@ Invoke `Skill(superpowers:brainstorming)` with the user's feature request as arg
 After brainstorming converges, ask the user EXACTLY these questions via `AskUserQuestion`:
 
 1. **Target branch** — which branch should all phase PRs merge into? (e.g. `main`, `develop`, `epic/<x>`)
-2. **Scope** — moovie / backend / both?
+2. **Scope** — muuvie / backend / both?
 3. **Feature slug** — short kebab-case identifier (≤ 40 chars), used as folder name under `research/features/<slug>/` and as branch suffix
 
 Validate slug regex `^[a-z0-9-]{1,40}$`. If user provides invalid → re-ask.
@@ -1066,7 +1066,7 @@ Validate slug regex `^[a-z0-9-]{1,40}$`. If user provides invalid → re-ask.
 
 - Confirm target branch exists in meta-repo: `git ls-remote --heads origin <target>` returns a line
 - Confirm target branch exists in each submodule in scope (same command from within the submodule)
-- Confirm `gh auth status` succeeds for `mobyleOfficial/MoovieAi`
+- Confirm `gh auth status` succeeds for `mobyleOfficial/MuuvieAi`
 - Confirm `research/features/<slug>/` does NOT already exist (avoid clobbering prior run); if it exists → ask user whether to resume or abort
 
 ### Step 4 — Persist kickoff state
@@ -1097,7 +1097,7 @@ After kickoff: no more `AskUserQuestion` calls until escalation. All decisions a
 Task({
   subagent_type: "pm-spec",
   description: "Write spec for <slug>",
-  prompt: "slug=<slug>\n\nFeature brainstorm:\n<paste kickoff brainstorm transcript>\n\nWrite the spec to research/features/<slug>/spec.md following pm-spec's responsibilities + the moovie-research-format skill."
+  prompt: "slug=<slug>\n\nFeature brainstorm:\n<paste kickoff brainstorm transcript>\n\nWrite the spec to research/features/<slug>/spec.md following pm-spec's responsibilities + the muuvie-research-format skill."
 })
 ```
 
@@ -1237,9 +1237,9 @@ Behavior branches on `scope` collected at kickoff.
 
 ### Order of operations
 
-- `scope=moovie` → one impl loop in `moovie/`
+- `scope=muuvie` → one impl loop in `muuvie/`
 - `scope=backend` → one impl loop in `backend/`
-- `scope=both` → backend loop first, then moovie loop (so moovie consumes merged backend contract)
+- `scope=both` → backend loop first, then muuvie loop (so muuvie consumes merged backend contract)
 
 ### Per-repo impl loop
 
@@ -1258,12 +1258,12 @@ Repeat for each repo in scope (backend first if `both`):
    ```
 
 2. **Dispatch implementer**:
-   - For `moovie/`:
+   - For `muuvie/`:
      ```
      Task({
        subagent_type: "implementer-tester",
-       description: "Implement <slug> in moovie",
-       prompt: "slug=<slug>\n\nWorking directory: moovie/. Read spec + plan from research/features/<slug>/ in the meta-repo (relative path: ../research/features/<slug>/). Implement task-by-task per the plan. Run flutter analyze + flutter test before declaring done. Do NOT open PR or push — return summary of changes."
+       description: "Implement <slug> in muuvie",
+       prompt: "slug=<slug>\n\nWorking directory: muuvie/. Read spec + plan from research/features/<slug>/ in the meta-repo (relative path: ../research/features/<slug>/). Implement task-by-task per the plan. Run flutter analyze + flutter test before declaring done. Do NOT open PR or push — return summary of changes."
      })
      ```
    - For `backend/`:
@@ -1277,21 +1277,21 @@ Repeat for each repo in scope (backend first if `both`):
 
 3. **Cross-repo context handoff** (only when `scope=both` and we just finished backend):
    - Capture from merged backend code (or the implementer's summary): list of new endpoints with method + path + request/response schemas
-   - Pass into the moovie implementer prompt verbatim as an "API Contract" code block
+   - Pass into the muuvie implementer prompt verbatim as an "API Contract" code block
 
 4. **Push + open PR**:
    ```bash
    git push -u origin feature/<slug>
    gh pr create --base <target> --head feature/<slug> \
      --title "feat(<slug>): implementation" \
-     --body "<!-- ultimate-developer:phase=impl repo=<moovie|backend> slug=<slug> -->" > /dev/null
+     --body "<!-- ultimate-developer:phase=impl repo=<muuvie|backend> slug=<slug> -->" > /dev/null
    IMPL_PR=$(gh pr view --json number --jq .number)
    ```
 
 5. **Review loop**:
    - `phase=impl`
    - `pr=$IMPL_PR`
-   - `repo=<moovie|backend>`
+   - `repo=<muuvie|backend>`
    - `max_iter=$UD_MAX_ITER_IMPL`
    - `reviewers=reviewer,validator` (both audit-only)
 
@@ -1307,7 +1307,7 @@ git checkout <target>
 git pull --ff-only
 git checkout -b chore/<slug>-bump-refs
 # Stage each submodule that was implemented
-git add moovie  # if in scope
+git add muuvie  # if in scope
 git add backend # if in scope
 git commit -m "chore(<slug>): bump submodule refs"
 git push -u origin chore/<slug>-bump-refs
@@ -1334,7 +1334,7 @@ When the bump PR cannot land:
    Slug: <slug>
    Target: <target>
    State:
-   - moovie submodule ref at <target>: <SHA-of-merged-impl-PR>  ← already merged
+   - muuvie submodule ref at <target>: <SHA-of-merged-impl-PR>  ← already merged
    - backend submodule ref at <target>: <SHA-of-merged-impl-PR> ← already merged
    - meta-repo submodule ref at <target>: <SHA-currently-pinned> ← STALE
 
@@ -1463,7 +1463,7 @@ The loop's pseudocode names map to these concrete operations. The implementer mu
 | `dedupe(findings, prior_comments)` | Normalize body BEFORE hashing. `post_inline_review` prepends a CRITICAL prefix (only for critical) and one or more stacked `gstatic` badge images (security + severity badges separated by spaces, per `agents/reviewer.md`), so raw-finding bodies and stored-comment bodies will never hash-match without normalization. Use Python regex so the strip handles BOTH the repeating-badge group AND the optional CRITICAL text in one pass: <br><br> ```python<br>import re<br>def normalize(body):<br>    body = re.sub(r'^\s*\*\*CRITICAL\*\*\s*', '', body)             # strip optional **CRITICAL** prefix<br>    body = re.sub(r'^\s*(!\[[^\]]*\]\([^)]*gstatic[^)]*\)\s*)+\n*', '', body)  # strip one OR MORE stacked badge images<br>    return body.strip()[:80]<br>``` <br><br> Then `hash = sha1_hex(path + ":" + line + ":" + normalize(body))`, computed via Python (portable across macOS/Linux — avoids the `sha1` shell command which is unavailable on most platforms): `hash=$(printf -- '%s' "$key" \| python3 -c 'import hashlib,sys; print(hashlib.sha1(sys.stdin.read().encode()).hexdigest())')`. Apply same `normalize`+hash to each `prior_comments[]`. Drop findings whose hash matches an unresolved prior comment. |
 | `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. |
 | `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. |
-| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, `"deferred"`, or `"stash_conflict"`. The caller's pseudocode branches on this value (treat `stash_conflict` same as `verification_failed` for retry counting; on the 3rd `stash_conflict` escalate with that reason — pop conflicts rarely auto-resolve). <br><br> **Critical invariant:** user may have pre-existing uncommitted work when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. **ALWAYS pop the stash before returning, NEVER drop it.** Drop loses user work. <br><br> **Step 1 — capture pre-state.** `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. Set `STASH_CREATED=true` if `git stash push` reported a new entry, else `false`. The `-u` flag stashes untracked too. Tag with `<thread_id>` so orphan-stash recovery can recognize ours. <br><br> **Step 2 — apply with explicit path recording.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Apply edits via a wrapper that explicitly populates `STEP2_PATHS_TRACKED` and `STEP2_PATHS_UNTRACKED` arrays as it goes — Edit/Write do NOT update git's own diff state during the call, so we record paths inline: <br><br> ```bash<br>declare -a STEP2_PATHS_TRACKED=() STEP2_PATHS_UNTRACKED=()<br>edit_tracked() {  # Use for paths git already tracks<br>  local path="$1" old="$2" new="$3"<br>  # Invoke the Edit tool with path/old/new — pseudocode<br>  STEP2_PATHS_TRACKED+=("$path")<br>}<br>write_new() {  # Use for paths that don't exist in git yet<br>  local path="$1" content="$2"<br>  # Invoke the Write tool with path/content — pseudocode<br>  STEP2_PATHS_UNTRACKED+=("$path")<br>}<br>``` <br><br> All `STEP2_PATHS_*` entries MUST be relative to the repo root (the working tree git operates on). De-duplicate the arrays before Step 3, **with an empty-array guard** (the naive pipeline `printf '%s\n' "${ARR[@]}" \| sort -u` produces a single empty-string element when the array is empty, which then crashes `git add ""`): <br><br> ```bash<br>if [ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ]; then<br>  mapfile -t STEP2_PATHS_TRACKED < <(printf '%s\n' "${STEP2_PATHS_TRACKED[@]}" \| sort -u)<br>fi<br>if [ "${#STEP2_PATHS_UNTRACKED[@]}" -gt 0 ]; then<br>  mapfile -t STEP2_PATHS_UNTRACKED < <(printf '%s\n' "${STEP2_PATHS_UNTRACKED[@]}" \| sort -u)<br>fi<br>``` <br><br> If the suggestion is unparseable or contradictory before any edit_tracked/write_new call: pop the stash if `STASH_CREATED=true` (handle pop conflict per Step 3 PASS-branch rules below), return `"deferred"`. <br><br> **Step 3 — verify.** Run the phase's verification command (see below). <br><br> **On PASS:** stage exactly our paths: `git add -- "${STEP2_PATHS_TRACKED[@]}" "${STEP2_PATHS_UNTRACKED[@]}"`. Then pop the stash so user's prior work returns to the working tree (unstaged), separate from our staged edit. **On pop conflict, do NOT auto-retry by reverting our edit** — that path leaves the working tree containing the user's stashed work, but the agent would still return `"ok"` and the caller would commit user's unrelated changes as the fix. The only safe move on PASS-branch pop conflict is to revert our edits, leave the stash in place, and escalate: <br><br> ```bash<br>if [ "$STASH_CREATED" = "true" ]; then<br>  if ! git stash pop; then<br>    # Pop conflict: user's pre-existing work touches a file we edited.<br>    # Revert our edit so we don't leave a half-resolved tree behind, then bail.<br>    # We do NOT pop the stash on retry — auto-recovery would risk committing user's work as our fix.<br>    if [ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ]; then<br>      git restore --staged --worktree -- "${STEP2_PATHS_TRACKED[@]}" 2>/dev/null \|\| true<br>    fi<br>    for p in "${STEP2_PATHS_UNTRACKED[@]}"; do rm -f -- "$p"; done<br>    # Leave stash in place for user triage.<br>    escalate "$pr" "stash_pop_conflict_PASS" thread=thread stash="ud-apply_fix-pre-<thread_id>"<br>    return "stash_conflict"<br>  fi<br>fi<br>``` <br><br> Caller's `commit_and_push` commits only the staged paths. Return `"ok"`. <br><br> **On FAIL:** revert our edits before popping the stash (otherwise pop merges into a tree containing our broken edit). <br><br> ```bash<br>if [ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ]; then<br>  git restore --staged --worktree -- "${STEP2_PATHS_TRACKED[@]}" 2>/dev/null \|\| true<br>fi<br># Delete only OUR Write-created untracked files — not repo-wide; that would delete user's stashed untracked files (which won't be present in worktree right now anyway, but defensive).<br>for p in "${STEP2_PATHS_UNTRACKED[@]}"; do rm -f -- "$p"; done<br>if [ "$STASH_CREATED" = "true" ]; then<br>  if ! git stash pop; then<br>    # Pop conflict on revert path — user's work touched a file we (now-reverted) edited.<br>    # Leave stash in place, escalate. No further auto-recovery is safe here.<br>    escalate "$pr" "stash_pop_conflict_FAIL" thread=thread stash="ud-apply_fix-pre-<thread_id>"<br>    return "stash_conflict"<br>  fi<br>fi<br>return "verification_failed"<br>``` <br><br> **Per-phase verification commands:** <br>• spec/plan: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + markdown link check on touched links. <br>• impl moovie: `(cd moovie && flutter analyze && flutter test)` <br>• impl backend: `(cd backend && ./gradlew test)` |
+| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, `"deferred"`, or `"stash_conflict"`. The caller's pseudocode branches on this value (treat `stash_conflict` same as `verification_failed` for retry counting; on the 3rd `stash_conflict` escalate with that reason — pop conflicts rarely auto-resolve). <br><br> **Critical invariant:** user may have pre-existing uncommitted work when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. **ALWAYS pop the stash before returning, NEVER drop it.** Drop loses user work. <br><br> **Step 1 — capture pre-state.** `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. Set `STASH_CREATED=true` if `git stash push` reported a new entry, else `false`. The `-u` flag stashes untracked too. Tag with `<thread_id>` so orphan-stash recovery can recognize ours. <br><br> **Step 2 — apply with explicit path recording.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Apply edits via a wrapper that explicitly populates `STEP2_PATHS_TRACKED` and `STEP2_PATHS_UNTRACKED` arrays as it goes — Edit/Write do NOT update git's own diff state during the call, so we record paths inline: <br><br> ```bash<br>declare -a STEP2_PATHS_TRACKED=() STEP2_PATHS_UNTRACKED=()<br>edit_tracked() {  # Use for paths git already tracks<br>  local path="$1" old="$2" new="$3"<br>  # Invoke the Edit tool with path/old/new — pseudocode<br>  STEP2_PATHS_TRACKED+=("$path")<br>}<br>write_new() {  # Use for paths that don't exist in git yet<br>  local path="$1" content="$2"<br>  # Invoke the Write tool with path/content — pseudocode<br>  STEP2_PATHS_UNTRACKED+=("$path")<br>}<br>``` <br><br> All `STEP2_PATHS_*` entries MUST be relative to the repo root (the working tree git operates on). De-duplicate the arrays before Step 3, **with an empty-array guard** (the naive pipeline `printf '%s\n' "${ARR[@]}" \| sort -u` produces a single empty-string element when the array is empty, which then crashes `git add ""`): <br><br> ```bash<br>if [ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ]; then<br>  mapfile -t STEP2_PATHS_TRACKED < <(printf '%s\n' "${STEP2_PATHS_TRACKED[@]}" \| sort -u)<br>fi<br>if [ "${#STEP2_PATHS_UNTRACKED[@]}" -gt 0 ]; then<br>  mapfile -t STEP2_PATHS_UNTRACKED < <(printf '%s\n' "${STEP2_PATHS_UNTRACKED[@]}" \| sort -u)<br>fi<br>``` <br><br> If the suggestion is unparseable or contradictory before any edit_tracked/write_new call: pop the stash if `STASH_CREATED=true` (handle pop conflict per Step 3 PASS-branch rules below), return `"deferred"`. <br><br> **Step 3 — verify.** Run the phase's verification command (see below). <br><br> **On PASS:** stage exactly our paths: `git add -- "${STEP2_PATHS_TRACKED[@]}" "${STEP2_PATHS_UNTRACKED[@]}"`. Then pop the stash so user's prior work returns to the working tree (unstaged), separate from our staged edit. **On pop conflict, do NOT auto-retry by reverting our edit** — that path leaves the working tree containing the user's stashed work, but the agent would still return `"ok"` and the caller would commit user's unrelated changes as the fix. The only safe move on PASS-branch pop conflict is to revert our edits, leave the stash in place, and escalate: <br><br> ```bash<br>if [ "$STASH_CREATED" = "true" ]; then<br>  if ! git stash pop; then<br>    # Pop conflict: user's pre-existing work touches a file we edited.<br>    # Revert our edit so we don't leave a half-resolved tree behind, then bail.<br>    # We do NOT pop the stash on retry — auto-recovery would risk committing user's work as our fix.<br>    if [ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ]; then<br>      git restore --staged --worktree -- "${STEP2_PATHS_TRACKED[@]}" 2>/dev/null \|\| true<br>    fi<br>    for p in "${STEP2_PATHS_UNTRACKED[@]}"; do rm -f -- "$p"; done<br>    # Leave stash in place for user triage.<br>    escalate "$pr" "stash_pop_conflict_PASS" thread=thread stash="ud-apply_fix-pre-<thread_id>"<br>    return "stash_conflict"<br>  fi<br>fi<br>``` <br><br> Caller's `commit_and_push` commits only the staged paths. Return `"ok"`. <br><br> **On FAIL:** revert our edits before popping the stash (otherwise pop merges into a tree containing our broken edit). <br><br> ```bash<br>if [ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ]; then<br>  git restore --staged --worktree -- "${STEP2_PATHS_TRACKED[@]}" 2>/dev/null \|\| true<br>fi<br># Delete only OUR Write-created untracked files — not repo-wide; that would delete user's stashed untracked files (which won't be present in worktree right now anyway, but defensive).<br>for p in "${STEP2_PATHS_UNTRACKED[@]}"; do rm -f -- "$p"; done<br>if [ "$STASH_CREATED" = "true" ]; then<br>  if ! git stash pop; then<br>    # Pop conflict on revert path — user's work touched a file we (now-reverted) edited.<br>    # Leave stash in place, escalate. No further auto-recovery is safe here.<br>    escalate "$pr" "stash_pop_conflict_FAIL" thread=thread stash="ud-apply_fix-pre-<thread_id>"<br>    return "stash_conflict"<br>  fi<br>fi<br>return "verification_failed"<br>``` <br><br> **Per-phase verification commands:** <br>• spec/plan: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + markdown link check on touched links. <br>• impl muuvie: `(cd muuvie && flutter analyze && flutter test)` <br>• impl backend: `(cd backend && ./gradlew test)` |
 | `commit_and_push(message)` | Preconditions: `apply_fix` returned `"ok"` (verification passed). Run `git add <files-touched-in-apply_fix>` (NEVER `-A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
 | `increment_fix_attempts(thread_id)` / `reset_fix_attempts(thread_id)` | Per-thread fix-attempt counter. **Storage:** in-process bash associative array `FIX_ATTEMPTS` (`declare -A FIX_ATTEMPTS` at agent start), plus a mirrored line in `research/features/<slug>/review-log.md` so the counter survives mid-loop interruption + re-entry. **Key:** `thread_id` (the `node_id` from `gh_root_comments`, stable across passes). **Increment:** `FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1)); echo "fix_attempts[$thread_id]=${FIX_ATTEMPTS[$thread_id]}" >> review-log.md`; returns the new value. **Reset (on successful commit):** `unset 'FIX_ATTEMPTS[$thread_id]'; echo "fix_attempts[$thread_id]=0" >> review-log.md` (mirror records the reset). **Recovery on re-entry:** before entering the loop, scan review-log.md for the latest `fix_attempts[$id]=N` line per id (last-write-wins) and restore the in-memory map. **Cap:** 3 (referenced in the pseudocode above and in Safety Circuits escalation triggers). |
 | `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
@@ -1535,7 +1535,7 @@ You are the SOLE author of all PR thread replies and resolutions. Sub-agents in 
 
 ```bash
 # Resolve current repo from the working tree so the agent is fork-portable.
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)   # e.g. "mobyleOfficial/MoovieAi"
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)   # e.g. "mobyleOfficial/MuuvieAi"
 OWNER="${REPO%%/*}"
 REPO_NAME="${REPO##*/}"
 ```
@@ -1869,7 +1869,7 @@ After all phases complete (or on escalation), print a final report to stdout:
 
 **Slug:** <slug>
 **Target branch:** <target>
-**Scope:** <moovie|backend|both>
+**Scope:** <muuvie|backend|both>
 **Status:** COMPLETE | ESCALATED (<reason>)
 
 ## Phases
@@ -1879,7 +1879,7 @@ After all phases complete (or on escalation), print a final report to stdout:
 | Spec  | #<N> | <i> | merged | <SHA> |
 | Plan  | #<N> | <i> | merged | <SHA> |
 | Impl (backend) | #<N> | <i> | merged | <SHA> |
-| Impl (moovie)  | #<N> | <i> | merged | <SHA> |
+| Impl (muuvie)  | #<N> | <i> | merged | <SHA> |
 | Submodule bump | #<N> | — | merged | <SHA> |
 
 ## Artifacts
@@ -2063,12 +2063,12 @@ git commit -m "doc(claude-md-local): document audit-only sub-agent convention"
 
 **Files:** None modified.
 
-- [ ] **Step 1: Define a deliberately small moovie-only feature**
+- [ ] **Step 1: Define a deliberately small muuvie-only feature**
 
 Suggested: "Add a 'Refresh' icon button to the movie list screen that re-fetches the current view's data."
 
 Constraints:
-- moovie-only (no backend changes needed; uses existing endpoint)
+- muuvie-only (no backend changes needed; uses existing endpoint)
 - One new UI element, one bloc event, one existing-repo use case reuse — small surface
 - Acceptance: button visible, tappable, triggers a fresh fetch, shows loading state
 
@@ -2089,7 +2089,7 @@ In a fresh Claude Code session in this repo:
 - [ ] **Step 2: Answer kickoff questions exactly once**
 
 - Target branch: `dev`
-- Scope: `moovie`
+- Scope: `muuvie`
 - Slug: `movie-list-refresh-button`
 
 - [ ] **Step 3: Observe phase progression**
@@ -2120,7 +2120,7 @@ Expected: 2-5 research files; plan PR merged.
 - [ ] **Step 3: Verify impl phase**
 
 ```bash
-cd moovie
+cd muuvie
 git log --oneline | head -20
 gh pr list --state merged --json title,number --jq '.[] | select(.title | startswith("feat(movie-list-refresh-button)"))'
 flutter test

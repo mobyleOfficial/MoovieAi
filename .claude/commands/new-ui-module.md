@@ -142,9 +142,11 @@ class <ModuleName>Screen extends StatelessWidget {
 }
 ```
 
-3. Remind the user to add the module as a path dependency in the main app's `pubspec.yaml`:
-
-```yaml
-<module_name>:
-  path: ui/<module_name>
-```
+3. Remind the user to:
+   - Add the module as a path dependency in the main app's `pubspec.yaml`. If the module name conflicts with a feature package (e.g., `news` already exists under `features/news`), use a `_ui` suffix for the **package name only** (in `pubspec.yaml` `name:` field and imports), NOT the folder:
+     ```yaml
+     <module_name>_ui:
+       path: ui/<module_name>
+     ```
+   - Register the route title in `lib/routes/route_title_resolver.dart` if this is a detail screen.
+   - Do NOT add an `AppBar` or pinned `SliverAppBar` with title/back/actions inside the screen — the generic `MuuvieAnimatedAppBar` in `main_screen.dart` handles that. Use `SliverAppBar` with `automaticallyImplyLeading: false` and `pinned: false` only for hero images.

@@ -1,13 +1,13 @@
-# MoovieAi
+# MuuvieAi
 
-Meta-repository for the Moovie ecosystem. Central hub for shared resources, AI-assisted development, and automated repository management.
+Meta-repository for the Muuvie ecosystem. Central hub for shared resources, AI-assisted development, and automated repository management.
 
 ## Quick Start
 
 Clone with submodules and run the bootstrap script:
 ```bash
-git clone --recurse-submodules https://github.com/mobyleOfficial/MoovieAi
-cd MoovieAi
+git clone --recurse-submodules https://github.com/mobyleOfficial/MuuvieAi
+cd MuuvieAi
 ./bootstrap.sh
 ```
 
@@ -19,7 +19,7 @@ After bootstrap, set `LINEAR_ACCESS_TOKEN` in `.claude/settings.local.json` (git
 
 ## Structure
 
-- **[moovie/](moovie)** — Flutter frontend (Android, iOS, Web)
+- **[muuvie/](muuvie)** — Flutter frontend (Android, iOS, Web)
 - **[backend/](backend)** — Kotlin/Ktor API server
 - **[research/](research)** — Design docs, API specs, architecture decisions
 - **[plugins/](plugins)** — Claude Code MCP servers (e.g. `repo-management`)
@@ -65,7 +65,7 @@ Automates repository operations:
 
 Connect Linear to Claude Code for issue management in development sessions.
 
-**Setup:** Run `/setting-up-linear-mcp` for one-time configuration. Default project: MOO (Moovie).
+**Setup:** Run `/setting-up-linear-mcp` for one-time configuration. Default project: MOO (Muuvie).
 
 ### Pipeline Agents
 
@@ -75,7 +75,7 @@ Feature-development pipeline lives in [`agents/`](agents). Dispatched via the `T
 |-------|------|
 | `pm-spec` | Writes the feature spec / design doc |
 | `architect-review` | Reviews spec for feasibility against ecosystem architecture |
-| `implementer-tester` | Implements the feature (Flutter/Dart) + tests inside the `moovie` submodule |
+| `implementer-tester` | Implements the feature (Flutter/Dart) + tests inside the `muuvie` submodule |
 | `validator` | Read-only quality + correctness check across submodules; surfaces inline PR comments |
 | `reviewer` | Multi-pass PR reviewer; aggregates `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` into one batched GitHub review |
 
@@ -106,12 +106,12 @@ Scaffolding + review shortcuts in [`.claude/commands/`](.claude/commands):
 
 Pipeline agents add per-agent hooks (`validate-spec.sh`, `validate-implementation.sh`, `validate-localization.sh`, `validate-module-structure.sh`, `verify-di-registration.sh`, `regenerate-generated-files.sh`, `pipeline-coordinator.sh`, `human-gate-review.sh`, `enforce-path-restrictions.sh`, `block-cross-feature-data-imports.sh`) in their frontmatter. All hooks live in `.claude/hooks/`.
 
-## Frontend (Moovie)
+## Frontend (Muuvie)
 
 **Tech:** Flutter, Dart, BLoC, Clean Architecture
 
 ```bash
-cd moovie
+cd muuvie
 bundle install              # Install Ruby dependencies (Fastlane)
 flutter pub get             # Install Flutter dependencies
 dart run build_runner build --delete-conflicting-outputs  # Code generation
@@ -119,9 +119,9 @@ bundle exec fastlane ios dev   # Run on iOS
 bundle exec fastlane android dev  # Run on Android
 ```
 
-See [moovie/README.md](moovie/README.md) for details.
+See [muuvie/README.md](muuvie/README.md) for details.
 
-## Backend (MoovieBackend)
+## Backend (MuuvieBackend)
 
 **Tech:** Kotlin, Ktor, Koin, TMDB API
 
@@ -147,7 +147,7 @@ Project-wide rules live in [`rules/`](rules). Each rule is enforced by a hook li
 | Rule | Summary |
 |------|---------|
 | [NO_COAUTHORS](rules/NO_COAUTHORS.md) | Single author per commit. No `Co-Authored-By` trailers in commits / PRs / issues. |
-| [AI_AGNOSTIC_SUBMODULES](rules/AI_AGNOSTIC_SUBMODULES.md) | Child repos (`moovie`, `backend`) must remain AI-agnostic. No `CLAUDE.md`, `.claude/`, `.cursorrules`, `copilot-instructions.md`, `AGENTS.md` inside submodules. |
+| [AI_AGNOSTIC_SUBMODULES](rules/AI_AGNOSTIC_SUBMODULES.md) | Child repos (`muuvie`, `backend`) must remain AI-agnostic. No `CLAUDE.md`, `.claude/`, `.cursorrules`, `copilot-instructions.md`, `AGENTS.md` inside submodules. |
 | [LOCAL_CLAUDE_CONFIG](rules/LOCAL_CLAUDE_CONFIG.md) | All `.claude/` + `.mcp.json` config uses portable relative paths. No `~/` or absolute user paths. |
 | [PYTHON_ENVS](rules/PYTHON_ENVS.md) | All Python `pip` / `uv` / `poetry` / `conda install` calls must run inside an active virtualenv. |
 | [DOCS_UP_TO_DATE](rules/DOCS_UP_TO_DATE.md) | Public-surface changes must update docs in the same PR. Enforced by `check-docs-sync.sh` on `gh pr create` / `git push`. |
@@ -176,7 +176,7 @@ status: draft|approved|archived
 ## Next Steps
 ```
 
-See [.claude/skills/moovie-research-format/](.claude/skills/moovie-research-format/SKILL.md) for full specification.
+See [.claude/skills/muuvie-research-format/](.claude/skills/muuvie-research-format/SKILL.md) for full specification.
 
 ## Submodule Workflows
 
@@ -187,11 +187,11 @@ git submodule update --remote
 
 **Develop in a submodule:**
 ```bash
-cd moovie  # or backend
+cd muuvie  # or backend
 git checkout main && git pull
 cd ..
-git add moovie
-git commit -m "chore: update moovie reference"
+git add muuvie
+git commit -m "chore: update muuvie reference"
 git push
 ```
 
@@ -203,14 +203,14 @@ Create feature branch "auth-flow"
 
 ## Contributing
 
-1. Make changes in child repos (moovie/ or backend/)
+1. Make changes in child repos (muuvie/ or backend/)
 2. Commit with Conventional Commits format
 3. Open PR (manually or via Claude Code plugin)
 4. Use standardized PR template
 5. Update submodule references if needed
 
 For Claude Code assisted work:
-- Research docs: Use moovie-research-format skill
+- Research docs: Use muuvie-research-format skill
 - Branch workflows: Use repo-management plugin
 - Standardized tools already allowlisted (git, npm, flutter, bundle, fastlane, etc.)
 

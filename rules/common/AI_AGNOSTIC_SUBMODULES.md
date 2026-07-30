@@ -1,6 +1,6 @@
 # AI-Agnostic Submodules Rule
 
-**RULE:** Child repositories (moovie, backend) MUST remain AI-agnostic. All AI-specific configuration, documentation, and integration belongs in the MoovieAi meta-repo only.
+**RULE:** Child repositories (muuvie, backend) MUST remain AI-agnostic. All AI-specific configuration, documentation, and integration belongs in the MuuvieAi meta-repo only.
 
 ## Why
 
@@ -12,7 +12,7 @@
 
 ## What's Forbidden in Submodules
 
-### ❌ Never Add to moovie/ or backend/
+### ❌ Never Add to muuvie/ or backend/
 
 ```
 CLAUDE.md           # No AI-specific guidance in child repos
@@ -45,7 +45,7 @@ Co-Authored-By: Claude <claude@anthropic.com>"  # WRONG
 Reason: Claude is a tool, not a contributor. Single human author always.
 See [NO_COAUTHORS.md](NO_COAUTHORS.md).
 
-## What Belongs in MoovieAi Meta-Repo
+## What Belongs in MuuvieAi Meta-Repo
 
 **All AI integration lives here:**
 - `.claude/settings.json` — Claude Code config
@@ -60,37 +60,37 @@ See [NO_COAUTHORS.md](NO_COAUTHORS.md).
 Before merging a PR in submodules, verify:
 ```bash
 # Should return nothing
-grep -r "claude\|Claude\|CLAUDE" moovie/
+grep -r "claude\|Claude\|CLAUDE" muuvie/
 grep -r "claude\|Claude\|CLAUDE" backend/
 
 # Should return nothing
-ls -la moovie/.claude/
+ls -la muuvie/.claude/
 ls -la backend/.claude/
-ls -la moovie/CLAUDE.md
+ls -la muuvie/CLAUDE.md
 ls -la backend/CLAUDE.md
 ```
 
 ## When a Submodule Needs AI Documentation
 
-Example: "How do I run Moovie in Claude Code?"
+Example: "How do I run Muuvie in Claude Code?"
 
-**❌ Add to moovie/README.md:**
+**❌ Add to muuvie/README.md:**
 ```markdown
 ## Claude Code Setup
 (instructions here)
 ```
 
-**✅ Add to MoovieAi CLAUDE.md instead:**
+**✅ Add to MuuvieAi CLAUDE.md instead:**
 ```markdown
-### Moovie (Flutter Frontend)
-...development guidance for Moovie...
+### Muuvie (Flutter Frontend)
+...development guidance for Muuvie...
 ```
 
 Point child repo docs to meta-repo:
 ```markdown
-# Moovie
+# Muuvie
 
-For AI-assisted development guidance, see the parent repo: [MoovieAi CLAUDE.md](../../CLAUDE.md)
+For AI-assisted development guidance, see the parent repo: [MuuvieAi CLAUDE.md](../../CLAUDE.md)
 ```
 
 ## Enforcement
@@ -108,7 +108,7 @@ If a submodule integration test needs MCP/Claude context (rare):
 
 Example:
 ```bash
-moovie/tests/ai-integration/.claude/settings.json  # Test-only config
+muuvie/tests/ai-integration/.claude/settings.json  # Test-only config
 ```
 
 Not production code — test setup only.

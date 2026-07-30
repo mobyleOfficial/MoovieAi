@@ -6,7 +6,7 @@
 #
 # Scoping: do not block every unrelated meta-repo commit. Only block if:
 #   - the staged change set or the operation's pathspec includes
-#     moovie/ or backend/, AND
+#     muuvie/ or backend/, AND
 #   - that submodule's TRACKED files include any AI-tooling path.
 #
 # Why tracked-only: a leftover .claude/ in a submodule working tree that
@@ -33,7 +33,7 @@ cd "$repo_root" 2>/dev/null || exit 0
 
 # Determine which submodules are involved in THIS operation.
 # Sources of involvement:
-#   1. Currently staged files (any path under moovie/ or backend/)
+#   1. Currently staged files (any path under muuvie/ or backend/)
 #   2. Currently unstaged-but-modified files (will be picked up by git add -A)
 #   3. Already-committed-but-unpushed files reachable from HEAD but not from
 #      the upstream tracking branch. Without this, `git push` of a clean
@@ -52,7 +52,7 @@ fi
 
 combined=$(printf '%s\n%s\n%s\n' "$staged" "$unstaged" "$unpushed")
 
-for submodule in moovie backend; do
+for submodule in muuvie backend; do
   if echo "$combined" | grep -qE "^${submodule}(/|$)"; then
     involved+="$submodule "
   fi

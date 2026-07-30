@@ -25,7 +25,7 @@ Create a datasource contract and implementation for remote API or local storage 
 ### Remote DataSource
 
 ```
-moovie/features/<feature>/data/lib/datasources/remote/
+muuvie/features/<feature>/data/lib/datasources/remote/
 ├── <feature>_remote_data_source.dart        (contract/interface)
 └── <feature>_remote_data_source_impl.dart   (implementation)
 ```
@@ -33,7 +33,7 @@ moovie/features/<feature>/data/lib/datasources/remote/
 ### Local DataSource
 
 ```
-moovie/features/<feature>/data/lib/datasources/local/
+muuvie/features/<feature>/data/lib/datasources/local/
 ├── <feature>_local_data_source.dart         (contract/interface)
 └── <feature>_local_data_source_impl.dart    (implementation)
 ```

@@ -6,7 +6,7 @@ This specification describes the implementation of a comments system that allows
 
 ### Why This Matters
 
-Comments enable user engagement and social interaction within the Moovie ecosystem. By exposing comments on reviews and lists, we:
+Comments enable user engagement and social interaction within the Muuvie ecosystem. By exposing comments on reviews and lists, we:
 - Increase user trust through community feedback
 - Encourage content discovery and discussion
 - Provide aggregated sentiment and insights
@@ -154,7 +154,7 @@ When backend implements comments endpoint:
 
 ## Cross-Repo Impact
 
-### Frontend (Moovie) - Changes Required
+### Frontend (Muuvie) - Changes Required
 - ✅ Create `features/comments/` with domain, data, UI modules
 - ✅ Integrate CommentsScreen into review detail and list detail pages
 - ✅ Update main `pubspec.yaml` to depend on comments feature + UI module
@@ -162,7 +162,7 @@ When backend implements comments endpoint:
 - ✅ Create unit tests for use cases
 - ✅ Create widget tests for CommentsScreen
 
-### Backend (MoovieBackend) - No Changes (MVP)
+### Backend (MuuvieBackend) - No Changes (MVP)
 - Backend will implement real endpoint in Phase 2
 - For now: Frontend uses mocked data source
 - Future: Real endpoint should match API contract above

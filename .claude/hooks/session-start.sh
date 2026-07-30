@@ -47,7 +47,7 @@ for d in "${skill_dirs[@]}"; do
   skill_names="${skill_names:+$skill_names, }$name"
 done
 
-echo "MoovieAi session — ${rule_count} rules, ${skill_count} skills, ${mcp_count} MCP servers loaded."
+echo "MuuvieAi session — ${rule_count} rules, ${skill_count} skills, ${mcp_count} MCP servers loaded."
 [ -n "$rule_names" ] && echo "  Rules: $rule_names"
 [ -n "$skill_names" ] && echo "  Skills: $skill_names"
 

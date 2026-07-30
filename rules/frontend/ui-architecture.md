@@ -44,7 +44,8 @@ Use `/new-ui-module <name>` to scaffold a new module from the standard template.
 - **ALWAYS** use the Page/Screen split. Never put `@RoutePage()`, `GetIt` resolution, or Cubit lifecycle management in the Screen. Never put rendering logic in the Page.
 - The Page is the `@RoutePage()` entry point. The Screen is a plain `StatelessWidget`.
 - Cubits are **never registered in DI modules**. The Page resolves use cases from `GetIt` and passes them to the Cubit constructor.
-- Package naming: `<module_name>` matching the directory name.
-- The main app adds the UI module as a path dependency (e.g., `home: path: ui/home`).
+- **Folder naming:** The folder under `ui/` must NOT have a `_ui` suffix (e.g., `ui/news/`, `ui/auth/`, `ui/profile/`). The Dart package name in `pubspec.yaml` may use a `_ui` suffix only to avoid conflicts with a feature package of the same name (e.g., `name: news_ui` because `features/news` already uses `name: news`).
+- The main app adds the UI module as a path dependency (e.g., `news_ui: path: ui/news`).
 - The barrel file re-exports all four files.
 - File names use `snake_case`. Class names use `PascalCase` (e.g., `HomeCubit`, `HomePage`, `HomeScreen`, `HomeState`).
+- **No AppBar in detail screens.** Detail screens must NOT add their own `AppBar` or pinned `SliverAppBar` with title/back/actions. The app uses a generic `MuuvieAnimatedAppBar` in `main_screen.dart` that resolves the title from `route_title_resolver.dart` and shows a back button automatically. Use a `SliverAppBar` with `automaticallyImplyLeading: false` and `pinned: false` ONLY for hero images. Register the route title in `lib/routes/route_title_resolver.dart`. For screen-specific actions (e.g., share), place them in the body content or use `AppBarController.setActions()`.

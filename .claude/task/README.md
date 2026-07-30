@@ -1,6 +1,6 @@
 # Task Management & Feature Pipeline
 
-Centralized task tracking and feature development pipelines for the MoovieAi ecosystem.
+Centralized task tracking and feature development pipelines for the MuuvieAi ecosystem.
 
 ## Directory Structure
 
@@ -72,7 +72,7 @@ Both frontend and backend follow the same 6-stage pipeline:
 ### Frontend (Flutter/Dart)
 - **Implementer:** `/implementer-tester`
 - **Tech Stack:** Flutter, Dart, BLoC, GetIt
-- **Code Output:** `moovie/{features,ui,lib}/**`
+- **Code Output:** `muuvie/{features,ui,lib}/**`
 - **Skills:** `/new-datasource`, `/new-repository`, `/new-usecase`, `/new-ui-module`
 - **Error Handling:** `Result<T>` wrappers
 - **Async:** Future/Stream

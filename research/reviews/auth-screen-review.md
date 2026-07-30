@@ -8,7 +8,7 @@
 
 ## Review Summary
 
-The auth-screen spec is well-aligned with the existing MoovieAi ecosystem architecture. The feature follows Clean Architecture with the standard domain/data/UI layer separation. Crucially, the DI contract is already committed in `injection.config.dart`, which both constrains and validates the proposed class names and registrations.
+The auth-screen spec is well-aligned with the existing MuuvieAi ecosystem architecture. The feature follows Clean Architecture with the standard domain/data/UI layer separation. Crucially, the DI contract is already committed in `injection.config.dart`, which both constrains and validates the proposed class names and registrations.
 
 ---
 
@@ -31,7 +31,7 @@ The auth-screen spec is well-aligned with the existing MoovieAi ecosystem archit
 
 ### 3. Submodule Boundaries — PASS
 
-- All auth code lives in `moovie/` submodule (frontend only)
+- All auth code lives in `muuvie/` submodule (frontend only)
 - Backend interaction is fully mocked — no cross-submodule dependency
 - API contract is documented for future backend implementation
 - No AI-tooling files in submodule (compliant with `AI_AGNOSTIC_SUBMODULES` rule)

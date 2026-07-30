@@ -1,11 +1,11 @@
 ---
-name: moovie-research-format
-description: Use when documenting research, design decisions, architecture analysis, or API specifications for the Moovie ecosystem. Applies to all investigation docs, architecture reviews, and technical decisions in research/ folder.
+name: muuvie-research-format
+description: Use when documenting research, design decisions, architecture analysis, or API specifications for the Muuvie ecosystem. Applies to all investigation docs, architecture reviews, and technical decisions in research/ folder.
 ---
 
-# Moovie Research Format
+# Muuvie Research Format
 
-Standardized format for research documentation across Moovie ecosystem. Ensures consistency, proper sourcing, and clear decision outcomes.
+Standardized format for research documentation across Muuvie ecosystem. Ensures consistency, proper sourcing, and clear decision outcomes.
 
 ## Mandatory Structure
 
@@ -36,7 +36,7 @@ tags: [api, backend, architecture]
 - One-sentence conclusion
 - Must be skimmable in 30 seconds
 
-Example: "This research evaluates API versioning strategies for MoovieBackend. URI path versioning (`/api/v1/`) is recommended: industry-standard, discoverable, minimal frontend changes."
+Example: "This research evaluates API versioning strategies for MuuvieBackend. URI path versioning (`/api/v1/`) is recommended: industry-standard, discoverable, minimal frontend changes."
 
 ### 3. Problem Statement
 - What triggered this research

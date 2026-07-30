@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-MoovieAi is a **meta-repository** that serves as the central hub for the Moovie ecosystem. It contains:
+MuuvieAi is a **meta-repository** that serves as the central hub for the Muuvie ecosystem. It contains:
 
 - **Shared resources** for AI-assisted development (plugins, rules, skills)
 - **Research and documentation** about the ecosystem
@@ -17,8 +17,8 @@ Child repositories do not need their own AI-specific documentation — they inhe
 ## Repository Structure
 
 ```
-MoovieAi/
-├── moovie/           # Git submodule: Flutter frontend app
+MuuvieAi/
+├── muuvie/           # Git submodule: Flutter frontend app
 ├── backend/          # Git submodule: Kotlin/Ktor backend
 ├── research/         # Research docs, analysis, design docs
 ├── plugins/          # Claude Code MCP servers (e.g. repo-management)
@@ -37,9 +37,9 @@ MoovieAi/
 
 ## Child Repositories
 
-### Moovie (Flutter Frontend)
+### Muuvie (Flutter Frontend)
 
-**Path:** `./moovie`  
+**Path:** `./muuvie`  
 **Tech Stack:** Flutter, Dart, BLoC, Clean Architecture  
 **Platforms:** Android, iOS, Web  
 **Key Features:**
@@ -50,7 +50,7 @@ MoovieAi/
 
 **Setup:**
 ```bash
-cd moovie
+cd muuvie
 rbenv local 3.2.0
 bundle install
 flutter pub get
@@ -75,7 +75,7 @@ bundle exec fastlane setup_ide
 
 ---
 
-### MoovieBackend (Kotlin/Ktor)
+### MuuvieBackend (Kotlin/Ktor)
 
 **Path:** `./backend`  
 **Tech Stack:** Kotlin 2.0.20, Ktor 2.3.0, Koin 3.5.6  
@@ -92,7 +92,7 @@ export TMDB_API_KEY="your_bearer_token"
 **Development:**
 - Run: `./gradlew run` (starts on `http://localhost:8080`)
 - Build fat JAR: `./gradlew buildFatJar`
-- Docker: `docker build -t moovie-backend . && docker run -p 8080:8080 -e TMDB_API_KEY="..." moovie-backend`
+- Docker: `docker build -t muuvie-backend . && docker run -p 8080:8080 -e TMDB_API_KEY="..." muuvie-backend`
 
 **Structure:**
 - `src/` — Kotlin source code
@@ -107,7 +107,7 @@ Submodules are frozen at specific commits. When cloning or pulling this repo:
 
 ```bash
 # Clone with submodules
-git clone --recurse-submodules https://github.com/mobyleOfficial/MoovieAi
+git clone --recurse-submodules https://github.com/mobyleOfficial/MuuvieAi
 
 # Or if already cloned, initialize submodules
 git submodule update --init --recursive
@@ -118,13 +118,13 @@ git submodule update --remote
 
 **For development in a submodule:**
 ```bash
-cd moovie  # or backend
+cd muuvie  # or backend
 git checkout main  # or your branch
 git pull
 cd ..
 # Commit the submodule reference change
-git add moovie
-git commit -m "chore: update moovie submodule reference"
+git add muuvie
+git commit -m "chore: update muuvie submodule reference"
 ```
 
 ---
@@ -165,7 +165,7 @@ Linting configurations, formatter rules, and architecture policies organized int
 Custom Claude workflows for scaffolding features and standardized documentation. Organized into three categories:
 
 **Common Skills (Frontend & Backend):**
-- `moovie-research-format` — Standardized format for design docs, architecture decisions, and research
+- `muuvie-research-format` — Standardized format for design docs, architecture decisions, and research
 - `setting-up-linear-mcp` — Configure Linear MCP at project level with workspace scoping
 - `verify-docs-before-pr` — Documentation verification before PR creation
 
@@ -185,7 +185,7 @@ Custom Claude workflows for scaffolding features and standardized documentation.
 Custom Claude agents for specialized tasks across the feature development pipeline:
 - **pm-spec** — Writes feature specifications from requests
 - **architect-review** — Reviews specs for feasibility and alignment
-- **implementer-tester** — Implements Flutter/Dart features (moovie/)
+- **implementer-tester** — Implements Flutter/Dart features (muuvie/)
 - **backend-implementer** — Implements Kotlin/Ktor features (backend/)
 - **code-reviewer** — Reviews code quality across both submodules
 - **validator** — Final pre-merge validation
@@ -223,7 +223,7 @@ Run automatically by agents via pre/post-tool-use and stop hooks. See [hooks/REA
 Project-level Claude Code skills, auto-discovered each session. Use when implementing repetitive patterns or cross-repo concerns.
 
 **Available Skills:**
-- `moovie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
+- `muuvie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
 - `setting-up-linear-mcp` — Configure Linear MCP and securely store token
 - `verify-docs-before-pr` — Documentation verification before opening a PR
 
@@ -233,7 +233,7 @@ Auto-discovered Markdown agent definitions (no registration needed). Dispatched 
 **Pipeline agents** (feature development):
 - `pm-spec` — writes feature specs / design docs
 - `architect-review` — reviews specs for ecosystem feasibility
-- `implementer-tester` — implements + tests features inside the `moovie` submodule
+- `implementer-tester` — implements + tests features inside the `muuvie` submodule
 - `validator` — read-only quality + correctness check across submodules; surfaces inline PR comments
 - `ultimate-developer` — autonomous end-to-end orchestrator; drives spec → plan → impl phases via PR review loops; invoke via `/ultimate-feature`
 - `researcher` — per-topic research sub-agent dispatched by `ultimate-developer` during plan phase
@@ -254,14 +254,14 @@ Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rule
 
 ## Key Architecture Patterns
 
-### Frontend (Moovie)
+### Frontend (Muuvie)
 - **State Management:** BLoC pattern for clean separation of business logic
 - **Structure:** Feature-based packages with core utilities
 - **Routing:** Code-generated (build_runner)
 - **Dependency Injection:** GetIt or manual injection per feature
 - **Testing:** Unit tests in feature packages, integration tests in root
 
-### Backend (MoovieBackend)
+### Backend (MuuvieBackend)
 - **Framework:** Ktor for lightweight, composable HTTP routing
 - **DI:** Koin modules for clean dependency management
 - **Serialization:** Kotlinx for JSON (no reflection overhead)
@@ -277,7 +277,7 @@ Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rule
 ## Development Workflows
 
 ### Adding a Feature
-1. **Frontend:** Create feature package in `moovie/features/`
+1. **Frontend:** Create feature package in `muuvie/features/`
 2. **Backend:** Add endpoint in `backend/src/`
 3. **Documentation:** Update research/ with API contract if complex
 4. **Testing:** Write tests in respective repos
@@ -285,10 +285,10 @@ Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rule
 ### Making Cross-Repo Changes
 1. Update backend first
 2. Update frontend to consume new API
-3. Commit both submodule references in MoovieAi
+3. Commit both submodule references in MuuvieAi
 
 ### Debugging Integration Issues
-- Check `moovie/secrets/.env` for correct backend URL
+- Check `muuvie/secrets/.env` for correct backend URL
 - Verify `TMDB_API_KEY` in backend environment
 - Review backend logs: `./gradlew run` (verbose output)
 - Check frontend logs: Flutter DevTools or `flutter logs`
@@ -307,9 +307,9 @@ All phase docs live under `research/features/<slug>/`. See `agents/ultimate-deve
 
 ## Common Commands Across the Ecosystem
 
-**Moovie (Flutter):**
+**Muuvie (Flutter):**
 ```bash
-cd moovie
+cd muuvie
 flutter pub get                                    # Install dependencies
 dart run build_runner build --delete-conflicting-outputs  # Code generation
 flutter test                                       # Run tests
@@ -318,7 +318,7 @@ bundle exec fastlane ios dev                      # Run on iOS
 bundle exec fastlane android dev                  # Run on Android
 ```
 
-**MoovieBackend (Kotlin):**
+**MuuvieBackend (Kotlin):**
 ```bash
 cd backend
 ./gradlew run                                      # Run locally
@@ -339,7 +339,7 @@ cd backend
 
 ## Critical Rules
 
-**AI-Agnostic Submodules:** Child repos (moovie, backend) MUST remain AI-agnostic. No CLAUDE.md, .claude/, or AI-specific references in submodules. All AI integration lives in this meta-repo. Single human author per commit (no Claude co-authors). See [rules/AI_AGNOSTIC_SUBMODULES.md](rules/AI_AGNOSTIC_SUBMODULES.md).
+**AI-Agnostic Submodules:** Child repos (muuvie, backend) MUST remain AI-agnostic. No CLAUDE.md, .claude/, or AI-specific references in submodules. All AI integration lives in this meta-repo. Single human author per commit (no Claude co-authors). See [rules/AI_AGNOSTIC_SUBMODULES.md](rules/AI_AGNOSTIC_SUBMODULES.md).
 
 **No Coauthors:** Never use `Co-Authored-By` trailers in commits, PR descriptions, or issues in any child repository. Single author per commit always. See [rules/NO_COAUTHORS.md](rules/NO_COAUTHORS.md).
 
@@ -409,7 +409,7 @@ At the start of each session, load these resources:
 =======
 **1. Rules** — Organizational policies that govern all work (each backed by a hook):
 - [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use `Co-Authored-By` trailers in commits, single author always
-- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (`moovie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
+- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (`muuvie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
 - [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` + `.mcp.json` config must use portable relative paths, no `~/` or absolute user paths
 - [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python `pip` / `uv` / `poetry` / `conda install` must run inside an active virtualenv
 - [`rules/DOCS_UP_TO_DATE.md`](rules/DOCS_UP_TO_DATE.md) — public-surface changes must update docs in the same PR (blocked by `check-docs-sync.sh` on `gh pr create` / `git push`)
@@ -419,7 +419,7 @@ Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility
 
 <<<<<<< HEAD
 **3. Skills** — Custom Claude workflows:
-- **Common:** `setting-up-linear-mcp`, `moovie-research-format`, `verify-docs-before-pr`
+- **Common:** `setting-up-linear-mcp`, `muuvie-research-format`, `verify-docs-before-pr`
 - **Frontend:** `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`
 - **Backend:** `/new-kotlin-usecase`, `/new-kotlin-datasource`, `/new-kotlin-repository`, `/new-ktor-endpoint`
 - All skills auto-discoverable via `local-skills` marketplace in `.claude/settings.json`
@@ -436,7 +436,7 @@ Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility
 
 **3. Skills** — auto-discovered from `.claude/skills/<name>/SKILL.md`:
 - `setting-up-linear-mcp` — configure Linear MCP and securely store the token
-- `moovie-research-format` — standardized format for design docs / architecture decisions / research
+- `muuvie-research-format` — standardized format for design docs / architecture decisions / research
 - `verify-docs-before-pr` — manual docs check (the `check-docs-sync.sh` hook already blocks PRs / pushes that fall out of sync — invoke this skill only for a pre-flight self-check)
 
 **4. Slash commands** — invoked via `/<name>`, defined under `.claude/commands/`:
@@ -451,13 +451,13 @@ These resources are binding for all work in this repo. Obey rules before suggest
 
 Run `/setting-up-linear-mcp` — guides secure project-level setup with workspace scoping + token storage.
 
-Default project: MOO (Moovie). Token stored in `.claude/settings.local.json` (gitignored).
+Default project: MOO (Muuvie). Token stored in `.claude/settings.local.json` (gitignored).
 
 ---
 
 ## Notes for Claude Instances
 
-When working in child repos (moovie or backend):
+When working in child repos (muuvie or backend):
 - Refer back to this CLAUDE.md for ecosystem context
 - Check `research/` for design decisions that affect your changes
 - Use `plugins/` and `.claude/skills/` resources for repeated tasks
@@ -466,6 +466,6 @@ When working in child repos (moovie or backend):
 - If adding new shared resources, document them here
 
 When using Linear in Claude Code:
-- Linear MCP defaults to MOO project (Moovie)
+- Linear MCP defaults to MOO project (Muuvie)
 - Create issue references: `MOO-123`, `MOO-456`
 - Link issues in PRs via description: "Closes MOO-123"

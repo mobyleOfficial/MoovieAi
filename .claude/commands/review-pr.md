@@ -14,7 +14,7 @@ The argument `$ARGUMENTS` is the PR number (e.g. `12`, `#12`, or a full PR URL).
    Task({
      subagent_type: "reviewer",
      description: "Review PR <N>",
-     prompt: "Review PR #<N> on mobyleOfficial/MoovieAi using the multi-pass workflow defined in agents/reviewer.md. Run the three specialized sub-reviewers in parallel, validate findings, deduplicate against any existing inline comments, and post net-new findings as inline review comments. Return the final JSON summary."
+     prompt: "Review PR #<N> on mobyleOfficial/MuuvieAi using the multi-pass workflow defined in agents/reviewer.md. Run the three specialized sub-reviewers in parallel, validate findings, deduplicate against any existing inline comments, and post net-new findings as inline review comments. Return the final JSON summary."
    })
    ```
 3. After the agent returns, read the JSON summary and report to the user:

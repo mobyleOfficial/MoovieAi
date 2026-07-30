@@ -5,7 +5,7 @@ description: Scaffold a new usecase in a feature's domain layer
 
 # New UseCase Scaffold
 
-Create a reusable business logic usecase following the MoovieAi pattern.
+Create a reusable business logic usecase following the MuuvieAi pattern.
 
 ## Usage
 
@@ -23,7 +23,7 @@ Create a reusable business logic usecase following the MoovieAi pattern.
 ## Generated Structure
 
 ```
-moovie/features/<feature>/domain/lib/usecases/
+muuvie/features/<feature>/domain/lib/usecases/
 └── <use_case_name_snake_case>.dart
 ```
 
