@@ -161,7 +161,7 @@ Linting configurations, formatter rules, and architecture policies organized int
 - `backend/backend-testing.md` — Testing patterns
 
 ### `.claude/skills/`
-Project-level Claude Code skills, auto-discovered each session. Use when implementing repetitive patterns or cross-repo concerns.
+Project-level Claude Code skills, auto-discovered each session from `.claude/skills/<name>/SKILL.md`. Use when implementing repetitive patterns or cross-repo concerns.
 
 **Available Skills:**
 - `muuvie-research-format` — Standardized format for design docs, architecture decisions, and research documentation
@@ -185,10 +185,32 @@ Auto-discovered Markdown agent definitions (no registration needed). Dispatched 
 - `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture` — scoped sub-reviewers, one domain each
 
 ### `.claude/commands/`
-Slash commands invoked via `/<name>`. Claude Code auto-discovers files from this path; no registration needed. Currently: `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`, `/review-pr`, `/ultimate-feature`. The scaffolding commands feed into the `implementer-tester` agent; `/review-pr` invokes the `reviewer` agent; `/ultimate-feature` invokes the `ultimate-developer` agent for autonomous end-to-end feature delivery. (Repo-root `commands/` is NOT a Claude Code discovery path — files there are not callable as slash commands.)
+Slash commands invoked via `/<name>`. Claude Code auto-discovers files from this path; no registration needed. (Repo-root `commands/` and `skills/` are NOT discovery paths — files there are not callable.)
+
+**Frontend scaffolding (Flutter/Dart):**
+- `/new-usecase` — Scaffold a domain usecase with `Result<T>` error handling
+- `/new-datasource` — Scaffold a remote/local datasource (Dio HTTP or local)
+- `/new-repository` — Scaffold domain/data repository pair
+- `/new-ui-module` — Scaffold a complete UI module (bloc/screen/state)
+
+**Backend scaffolding (Kotlin/Ktor):**
+- `/new-kotlin-usecase` — Scaffold a business logic usecase with `operator fun invoke()`
+- `/new-kotlin-datasource` — Scaffold a Ktor HTTP client datasource
+- `/new-kotlin-repository` — Scaffold domain/data repository pair with DTO mapping
+- `/new-ktor-endpoint` — Scaffold an API endpoint with routing and DI
+
+**Pipeline:**
+- `/review-pr <PR#>` — invokes the `reviewer` agent
+- `/ultimate-feature "<request>"` — invokes the `ultimate-developer` agent for autonomous end-to-end delivery
+
+The scaffolding commands feed into `implementer-tester` (frontend) and `backend-implementer` (backend).
 
 ### `.claude/hooks/`
-Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rules/` is backed by a hook here — see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table.
+Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Flat directory — one script per file, no subdirectories. Each rule in `rules/` is backed by a hook here; see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table and [.claude/hooks/README.md](.claude/hooks/README.md) for per-hook detail.
+
+**Always-on** (wired in `settings.json`): `session-start.sh`, `block-destructive-commands.sh`, `check-coauthor.sh`, `check-python-env.sh`, `check-submodule-ai.sh`, `check-docs-sync.sh`, `format-code.sh`.
+
+**Per-agent** (referenced from pipeline-agent frontmatter): `validate-spec.sh`, `validate-audit-only.sh`, `enforce-path-restrictions.sh`, `human-gate-review.sh`, `pipeline-coordinator.sh`, `block-cross-feature-data-imports.sh`, `regenerate-generated-files.sh`, `validate-implementation.sh`, `validate-localization.sh`, `validate-module-structure.sh`, `verify-di-registration.sh`, `validate-backend-structure.sh`, `validate-kotlin-code.sh`, `verify-koin-di-registration.sh`.
 
 ---
 
@@ -279,15 +301,15 @@ cd backend
 
 ## Critical Rules
 
-**AI-Agnostic Submodules:** Child repos (muuvie, backend) MUST remain AI-agnostic. No CLAUDE.md, .claude/, or AI-specific references in submodules. All AI integration lives in this meta-repo. Single human author per commit (no Claude co-authors). See [rules/AI_AGNOSTIC_SUBMODULES.md](rules/AI_AGNOSTIC_SUBMODULES.md).
+**AI-Agnostic Submodules:** Child repos (muuvie, backend) MUST remain AI-agnostic. No CLAUDE.md, .claude/, or AI-specific references in submodules. All AI integration lives in this meta-repo. Single human author per commit (no Claude co-authors). See [rules/common/AI_AGNOSTIC_SUBMODULES.md](rules/common/AI_AGNOSTIC_SUBMODULES.md).
 
-**No Coauthors:** Never use `Co-Authored-By` trailers in commits, PR descriptions, or issues in any child repository. Single author per commit always. See [rules/NO_COAUTHORS.md](rules/NO_COAUTHORS.md).
+**No Coauthors:** Never use `Co-Authored-By` trailers in commits, PR descriptions, or issues in any child repository. Single author per commit always. See [rules/common/NO_COAUTHORS.md](rules/common/NO_COAUTHORS.md).
 
-**Python Environments:** All Python dependencies MUST be installed in a local, project-specific Python environment. Never install globally. See [rules/PYTHON_ENVS.md](rules/PYTHON_ENVS.md).
+**Python Environments:** All Python dependencies MUST be installed in a local, project-specific Python environment. Never install globally. See [rules/common/PYTHON_ENVS.md](rules/common/PYTHON_ENVS.md).
 
-**Local Claude Config:** All `.claude/` configuration MUST use portable, relative paths. No global (`~/`) or absolute user paths. Enables config reuse across team. Validated on every prompt. See [rules/LOCAL_CLAUDE_CONFIG.md](rules/LOCAL_CLAUDE_CONFIG.md).
+**Local Claude Config:** All `.claude/` configuration MUST use portable, relative paths. No global (`~/`) or absolute user paths. Enables config reuse across team. Validated on every prompt. See [rules/common/LOCAL_CLAUDE_CONFIG.md](rules/common/LOCAL_CLAUDE_CONFIG.md).
 
-**Docs Up To Date:** Every change affecting user-facing behavior, public interfaces, configuration, or directory structure MUST update the corresponding documentation (README.md, CLAUDE.md, subdir READMEs) in the same PR. Enforced by `.claude/hooks/check-docs-sync.sh` on `gh pr create` / `git push`. See [rules/DOCS_UP_TO_DATE.md](rules/DOCS_UP_TO_DATE.md).
+**Docs Up To Date:** Every change affecting user-facing behavior, public interfaces, configuration, or directory structure MUST update the corresponding documentation (README.md, CLAUDE.md, subdir READMEs) in the same PR. Enforced by `.claude/hooks/check-docs-sync.sh` on `gh pr create` / `git push`. See [rules/common/DOCS_UP_TO_DATE.md](rules/common/DOCS_UP_TO_DATE.md).
 
 ## Conventions
 
@@ -337,12 +359,19 @@ Displays automatically in the bottom right. Helps identify when to compact conve
 
 At the start of each session, load these resources:
 
-**1. Rules** — Organizational policies that govern all work (each backed by a hook):
-- [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use `Co-Authored-By` trailers in commits, single author always
-- [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (`muuvie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
-- [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` + `.mcp.json` config must use portable relative paths, no `~/` or absolute user paths
-- [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python `pip` / `uv` / `poetry` / `conda install` must run inside an active virtualenv
-- [`rules/DOCS_UP_TO_DATE.md`](rules/DOCS_UP_TO_DATE.md) — public-surface changes must update docs in the same PR (blocked by `check-docs-sync.sh` on `gh pr create` / `git push`)
+**1. Rules** — Organizational policies that govern all work. Rules live under `rules/{common,frontend,backend}/`.
+
+**Critical policies (all development, each backed by a hook):**
+- [`rules/common/NO_COAUTHORS.md`](rules/common/NO_COAUTHORS.md) — never use `Co-Authored-By` trailers in commits, single author always
+- [`rules/common/AI_AGNOSTIC_SUBMODULES.md`](rules/common/AI_AGNOSTIC_SUBMODULES.md) — child repos (`muuvie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
+- [`rules/common/LOCAL_CLAUDE_CONFIG.md`](rules/common/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` + `.mcp.json` config must use portable relative paths, no `~/` or absolute user paths
+- [`rules/common/PYTHON_ENVS.md`](rules/common/PYTHON_ENVS.md) — all Python `pip` / `uv` / `poetry` / `conda install` must run inside an active virtualenv
+- [`rules/common/DOCS_UP_TO_DATE.md`](rules/common/DOCS_UP_TO_DATE.md) — public-surface changes must update docs in the same PR (blocked by `check-docs-sync.sh` on `gh pr create` / `git push`)
+- [`rules/common/variable-naming.md`](rules/common/variable-naming.md) — naming conventions across both stacks
+
+**Frontend-specific:** `rules/frontend/` — `feature-architecture`, `feature-implementation`, `feature-testing`, `ui-architecture`, `accessibility`, `localization`
+
+**Backend-specific:** `rules/backend/` — `backend-architecture`, `backend-implementation`, `backend-testing`
 
 Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility`, `feature-architecture`, `feature-implementation`, `feature-testing`, `localization`, `ui-architecture`, `variable-naming`. See [`rules/README.md`](rules/README.md) for the full enforcement map.
 
@@ -356,9 +385,17 @@ Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility
 - `verify-docs-before-pr` — manual docs check (the `check-docs-sync.sh` hook already blocks PRs / pushes that fall out of sync — invoke this skill only for a pre-flight self-check)
 
 **4. Slash commands** — invoked via `/<name>`, defined under `.claude/commands/`:
-- `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — scaffolding, feed into the `implementer-tester` agent
+- `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — Flutter scaffolding, feeds into the `implementer-tester` agent
+- `/new-kotlin-usecase`, `/new-kotlin-datasource`, `/new-kotlin-repository`, `/new-ktor-endpoint` — Kotlin/Ktor scaffolding, feeds into the `backend-implementer` agent
 - `/review-pr <PR#>` — runs the `reviewer` agent against a GitHub PR
 - `/ultimate-feature "<request>"` — runs the `ultimate-developer` agent for autonomous end-to-end feature delivery
+
+**5. Agents** — dispatched via the `Task` tool's `subagent_type` parameter, auto-discovered from `agents/`:
+- `implementer-tester` — Flutter/Dart feature implementation
+- `backend-implementer` — Kotlin/Ktor backend feature implementation
+- `architect-review` — spec feasibility review
+- `reviewer` — code quality validation (orchestrates `reviewers/security`, `reviewers/bug-finder`, `reviewers/architecture`)
+- `validator` — final pre-merge validation
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 

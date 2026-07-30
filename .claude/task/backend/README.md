@@ -176,11 +176,10 @@ val AppModule = module {
 
 ## References
 
-- [Backend Pipeline Checklist](../../BACKEND_PIPELINE_CHECKLIST.md) — Full pipeline verification
-- [Backend Architecture Rules](../../rules/backend/backend-architecture.md) — Layer structure
-- [Backend Implementation Rules](../../rules/backend/backend-implementation.md) — Code style
-- [Backend Testing Rules](../../rules/backend/backend-testing.md) — Test patterns
-- [Backend Implementer Agent](../../agents/backend-implementer.md) — Agent guide
+- [Backend Architecture Rules](../../../rules/backend/backend-architecture.md) — Layer structure
+- [Backend Implementation Rules](../../../rules/backend/backend-implementation.md) — Code style
+- [Backend Testing Rules](../../../rules/backend/backend-testing.md) — Test patterns
+- [Backend Implementer Agent](../../../agents/backend-implementer.md) — Agent guide
 - [Hooks Documentation](../../hooks/README.md) — Validation hooks
 
 ## Next: Start a Feature

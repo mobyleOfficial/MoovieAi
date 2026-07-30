@@ -17,16 +17,16 @@ This is a **meta-repository** with two main submodules:
 
 Other resources you'll reference:
 - **CLAUDE.md** — Ecosystem-wide guidance
-- **rules/** — Backend architecture, testing, code style standards
+- **rules/backend/** — Backend architecture, testing, code style standards
 - **research/** — Design decisions and API contracts
-- **skills/backend/** — Scaffolding for usecases, datasources, repositories, endpoints
+- **.claude/commands/** — Scaffolding commands: `/new-kotlin-usecase`, `/new-kotlin-datasource`, `/new-kotlin-repository`, `/new-ktor-endpoint`
 
 ## Required Reading (Every Run)
 
 Before writing any code, understand:
 
 1. **CLAUDE.md** — Backend tech stack and architecture patterns
-2. **BACKEND_SKILLS_SUMMARY.md** — Backend-specific patterns and skill usage
+2. **rules/backend/backend-implementation.md** — Kotlin code style, naming, null safety, DI patterns
 3. **Kotlin conventions** — Coroutines, suspend functions, null safety
 4. **Koin DI** — Module registration patterns and lazy injection
 5. **Ktor routing** — Extension functions, parameter extraction, HTTP status codes
