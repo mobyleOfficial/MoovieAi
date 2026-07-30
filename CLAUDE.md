@@ -160,65 +160,6 @@ Linting configurations, formatter rules, and architecture policies organized int
 - `backend/backend-implementation.md` — Kotlin code style
 - `backend/backend-testing.md` — Testing patterns
 
-<<<<<<< HEAD
-### `skills/`
-Custom Claude workflows for scaffolding features and standardized documentation. Organized into three categories:
-
-**Common Skills (Frontend & Backend):**
-- `muuvie-research-format` — Standardized format for design docs, architecture decisions, and research
-- `setting-up-linear-mcp` — Configure Linear MCP at project level with workspace scoping
-- `verify-docs-before-pr` — Documentation verification before PR creation
-
-**Frontend Skills (Flutter/Dart):**
-- `/new-usecase` — Scaffold a domain usecase with Result<T> error handling
-- `/new-datasource` — Scaffold a remote/local datasource (Dio HTTP or local)
-- `/new-repository` — Scaffold domain/data repository pair
-- `/new-ui-module` — Scaffold a complete UI module (bloc/screen/state)
-
-**Backend Skills (Kotlin/Ktor):**
-- `/new-kotlin-usecase` — Scaffold a business logic usecase with operator invoke()
-- `/new-kotlin-datasource` — Scaffold a Ktor HTTP client datasource
-- `/new-kotlin-repository` — Scaffold domain/data repository pair with DTO mapping
-- `/new-ktor-endpoint` — Scaffold an API endpoint with routing and DI
-
-### `agents/`
-Custom Claude agents for specialized tasks across the feature development pipeline:
-- **pm-spec** — Writes feature specifications from requests
-- **architect-review** — Reviews specs for feasibility and alignment
-- **implementer-tester** — Implements Flutter/Dart features (muuvie/)
-- **backend-implementer** — Implements Kotlin/Ktor features (backend/)
-- **code-reviewer** — Reviews code quality across both submodules
-- **validator** — Final pre-merge validation
-
-Register in `.claude/settings.json` or invoke via `/agent-name`. All agents inherit ecosystem conventions and pre-authorized tools.
-
-### `hooks/`
-
-Validation hooks for code quality and architecture compliance. Organized into three categories:
-
-**Common Hooks (Both Frontend & Backend):**
-- `common/block-destructive-commands.sh` — Prevents dangerous shell operations
-- `common/enforce-path-restrictions.sh` — Ensures portable config paths
-- `common/human-gate-review.sh` — Requires human review at critical gates
-- `common/pipeline-coordinator.sh` — Manages feature development pipeline flow
-- `common/validate-spec.sh` — Validates feature specifications
-
-**Frontend Hooks (Flutter/Dart):**
-- `frontend/block-cross-feature-data-imports.sh` — Enforces architecture boundaries
-- `frontend/format-code.sh` — Auto-formats Dart code
-- `frontend/regenerate-generated-files.sh` — Runs build_runner
-- `frontend/validate-implementation.sh` — Validates Dart code patterns
-- `frontend/validate-localization.sh` — Validates multi-language support
-- `frontend/validate-module-structure.sh` — Validates feature structure
-- `frontend/verify-di-registration.sh` — Verifies DI completeness
-
-**Backend Hooks (Kotlin/Ktor):**
-- `backend/verify-koin-di-registration.sh` — Verifies Koin module registration
-- `backend/validate-backend-structure.sh` — Validates clean architecture
-- `backend/validate-kotlin-code.sh` — Validates Kotlin patterns
-
-Run automatically by agents via pre/post-tool-use and stop hooks. See [hooks/README.md](hooks/README.md) for details.
-=======
 ### `.claude/skills/`
 Project-level Claude Code skills, auto-discovered each session. Use when implementing repetitive patterns or cross-repo concerns.
 
@@ -248,7 +189,6 @@ Slash commands invoked via `/<name>`. Claude Code auto-discovers files from this
 
 ### `.claude/hooks/`
 Pre/Post/SessionStart hooks wired in `.claude/settings.json`. Each rule in `rules/` is backed by a hook here — see [.claude/CLAUDE.md § Hook Expectations](.claude/CLAUDE.md#hook-expectations) for the full table.
->>>>>>> origin/dev
 
 ---
 
@@ -397,39 +337,15 @@ Displays automatically in the bottom right. Helps identify when to compact conve
 
 At the start of each session, load these resources:
 
-<<<<<<< HEAD
-**1. Rules** — Organizational policies and architecture patterns:
-- **Critical policies (all development):**
-  - [`rules/common/LOCAL_CLAUDE_CONFIG.md`](rules/common/LOCAL_CLAUDE_CONFIG.md) — portable relative paths in `.claude/` config
-  - [`rules/common/AI_AGNOSTIC_SUBMODULES.md`](rules/common/AI_AGNOSTIC_SUBMODULES.md) — child repos must remain AI-agnostic
-  - [`rules/common/NO_COAUTHORS.md`](rules/common/NO_COAUTHORS.md) — single author per commit always
-  - [`rules/common/PYTHON_ENVS.md`](rules/common/PYTHON_ENVS.md) — local Python venv required
-- **Frontend-specific:** `rules/frontend/` (architecture, testing, UI, accessibility, localization)
-- **Backend-specific:** `rules/backend/` (architecture, implementation, testing)
-=======
 **1. Rules** — Organizational policies that govern all work (each backed by a hook):
 - [`rules/NO_COAUTHORS.md`](rules/NO_COAUTHORS.md) — never use `Co-Authored-By` trailers in commits, single author always
 - [`rules/AI_AGNOSTIC_SUBMODULES.md`](rules/AI_AGNOSTIC_SUBMODULES.md) — child repos (`muuvie`, `backend`) must remain AI-agnostic, no `CLAUDE.md` / `.claude/` / `.cursorrules` / `copilot-instructions.md` / `AGENTS.md` in submodules
 - [`rules/LOCAL_CLAUDE_CONFIG.md`](rules/LOCAL_CLAUDE_CONFIG.md) — all `.claude/` + `.mcp.json` config must use portable relative paths, no `~/` or absolute user paths
 - [`rules/PYTHON_ENVS.md`](rules/PYTHON_ENVS.md) — all Python `pip` / `uv` / `poetry` / `conda install` must run inside an active virtualenv
 - [`rules/DOCS_UP_TO_DATE.md`](rules/DOCS_UP_TO_DATE.md) — public-surface changes must update docs in the same PR (blocked by `check-docs-sync.sh` on `gh pr create` / `git push`)
->>>>>>> origin/dev
 
 Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility`, `feature-architecture`, `feature-implementation`, `feature-testing`, `localization`, `ui-architecture`, `variable-naming`. See [`rules/README.md`](rules/README.md) for the full enforcement map.
 
-<<<<<<< HEAD
-**3. Skills** — Custom Claude workflows:
-- **Common:** `setting-up-linear-mcp`, `muuvie-research-format`, `verify-docs-before-pr`
-- **Frontend:** `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module`
-- **Backend:** `/new-kotlin-usecase`, `/new-kotlin-datasource`, `/new-kotlin-repository`, `/new-ktor-endpoint`
-- All skills auto-discoverable via `local-skills` marketplace in `.claude/settings.json`
-
-**4. Agents** — Specialized Claude workflows for feature development pipeline:
-- Use `/implementer-tester` for Flutter/Dart feature implementation
-- Use `/backend-implementer` for Kotlin/Ktor backend feature implementation
-- Use `/architect-review` for spec feasibility review
-- Use `/code-reviewer` for code quality validation
-=======
 **2. Plugins** — MCP servers registered in `.mcp.json`:
 - `repo-management` — manage submodules, branches, PRs
 - `linear` — Linear workspace integration (token in gitignored `.claude/settings.local.json`)
@@ -443,7 +359,6 @@ Lint rules (Flutter-side, applied by `implementer-tester` agent): `accessibility
 - `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` — scaffolding, feed into the `implementer-tester` agent
 - `/review-pr <PR#>` — runs the `reviewer` agent against a GitHub PR
 - `/ultimate-feature "<request>"` — runs the `ultimate-developer` agent for autonomous end-to-end feature delivery
->>>>>>> origin/dev
 
 These resources are binding for all work in this repo. Obey rules before suggesting code.
 
