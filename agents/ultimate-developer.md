@@ -40,7 +40,7 @@ Invoke `Skill(superpowers:brainstorming)` with the user's feature request as arg
 After brainstorming converges, ask the user EXACTLY these questions via `AskUserQuestion`:
 
 1. **Target branch** — which branch should all phase PRs merge into? (e.g. `main`, `develop`, `epic/<x>`)
-2. **Scope** — moovie / backend / both?
+2. **Scope** — muuvie / backend / both?
 3. **Feature slug** — short kebab-case identifier (≤ 40 chars), used as folder name under `research/features/<slug>/` and as branch suffix
 
 Validate slug regex `^[a-z0-9-]{1,40}$`. If user provides invalid → re-ask.
@@ -49,7 +49,7 @@ Validate slug regex `^[a-z0-9-]{1,40}$`. If user provides invalid → re-ask.
 
 - Confirm target branch exists in meta-repo: `git ls-remote --heads origin <target>` returns a line
 - Confirm target branch exists in each submodule in scope (same command from within the submodule)
-- Confirm `gh auth status` succeeds for the repo this session is in: `REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner) && gh auth status` — do NOT hardcode `mobyleOfficial/MoovieAi` so this agent is fork-portable
+- Confirm `gh auth status` succeeds for the repo this session is in: `REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner) && gh auth status` — do NOT hardcode `mobyleOfficial/MuuvieAi` so this agent is fork-portable
 - Confirm `research/features/<slug>/` does NOT already exist (avoid clobbering prior run); if it exists → ask user whether to resume or abort
 
 ### Step 4 — Persist kickoff state
@@ -81,7 +81,7 @@ All log primitives (`log_iteration`, `log_findings`, `log_decision`, `increment_
 Task({
   subagent_type: "pm-spec",
   description: "Write spec for <slug>",
-  prompt: "slug=<slug>\n\nFeature brainstorm:\n<paste kickoff brainstorm transcript>\n\nWrite the spec to research/features/<slug>/spec.md following pm-spec's responsibilities + the moovie-research-format skill."
+  prompt: "slug=<slug>\n\nFeature brainstorm:\n<paste kickoff brainstorm transcript>\n\nWrite the spec to research/features/<slug>/spec.md following pm-spec's responsibilities + the muuvie-research-format skill."
 })
 ```
 
@@ -209,9 +209,9 @@ Behavior branches on `scope` collected at kickoff.
 
 ### Order of operations
 
-- `scope=moovie` → one impl loop in `moovie/`
+- `scope=muuvie` → one impl loop in `muuvie/`
 - `scope=backend` → one impl loop in `backend/`
-- `scope=both` → backend loop first, then moovie loop (so moovie consumes merged backend contract)
+- `scope=both` → backend loop first, then muuvie loop (so muuvie consumes merged backend contract)
 
 ### Per-repo impl loop
 
@@ -236,12 +236,12 @@ Repeat for each repo in scope (backend first if `both`):
    ```
 
 2. **Dispatch implementer**:
-   - For `moovie/`:
+   - For `muuvie/`:
      ```
      Task({
        subagent_type: "implementer-tester",
-       description: "Implement <slug> in moovie",
-       prompt: "slug=<slug>\n\nWorking directory: moovie/. Read spec + plan from research/features/<slug>/ in the meta-repo (relative path: ../research/features/<slug>/). Implement task-by-task per the plan. Run flutter analyze + flutter test before declaring done. Do NOT open PR or push — return summary of changes."
+       description: "Implement <slug> in muuvie",
+       prompt: "slug=<slug>\n\nWorking directory: muuvie/. Read spec + plan from research/features/<slug>/ in the meta-repo (relative path: ../research/features/<slug>/). Implement task-by-task per the plan. Run flutter analyze + flutter test before declaring done. Do NOT open PR or push — return summary of changes."
      })
      ```
    - For `backend/`:
@@ -255,21 +255,21 @@ Repeat for each repo in scope (backend first if `both`):
 
 3. **Cross-repo context handoff** (only when `scope=both` and we just finished backend):
    - Capture from merged backend code (or the implementer's summary): list of new endpoints with method + path + request/response schemas
-   - Pass into the moovie implementer prompt verbatim as an "API Contract" code block
+   - Pass into the muuvie implementer prompt verbatim as an "API Contract" code block
 
 4. **Push + open PR**:
    ```bash
    git push -u origin feature/<slug>
    gh pr create --base <target> --head feature/<slug> \
      --title "feat(<slug>): implementation" \
-     --body "<!-- ultimate-developer:phase=impl repo=<moovie|backend> slug=<slug> -->" > /dev/null
+     --body "<!-- ultimate-developer:phase=impl repo=<muuvie|backend> slug=<slug> -->" > /dev/null
    IMPL_PR=$(gh pr view --json number --jq .number)
    ```
 
 5. **Review loop**:
    - `phase=impl`
    - `pr=$IMPL_PR`
-   - `repo=<moovie|backend>`
+   - `repo=<muuvie|backend>`
    - `max_iter=$UD_MAX_ITER_IMPL`
    - `reviewers=reviewer,validator` (both audit-only)
 
@@ -287,7 +287,7 @@ git checkout <target>
 git pull --ff-only
 git checkout -b chore/<slug>-bump-refs
 # Stage each submodule that was implemented
-git add moovie  # if in scope
+git add muuvie  # if in scope
 git add backend # if in scope
 git commit -m "chore(<slug>): bump submodule refs"
 git push -u origin chore/<slug>-bump-refs
@@ -314,7 +314,7 @@ When the bump PR cannot land:
    Slug: <slug>
    Target: <target>
    State:
-   - moovie submodule ref at <target>: <SHA-of-merged-impl-PR>  ← already merged
+   - muuvie submodule ref at <target>: <SHA-of-merged-impl-PR>  ← already merged
    - backend submodule ref at <target>: <SHA-of-merged-impl-PR> ← already merged
    - meta-repo submodule ref at <target>: <SHA-currently-pinned> ← STALE
 
@@ -453,7 +453,7 @@ The loop's pseudocode names map to these concrete operations. The implementer mu
 | `dedupe(findings, prior_comments)` | Normalize body BEFORE hashing. `post_inline_review` prepends a CRITICAL prefix (only for critical) and one or more stacked `gstatic` badge images (security + severity badges separated by spaces, per `agents/reviewer.md`), so raw-finding bodies and stored-comment bodies will never hash-match without normalization. Use Python regex so the strip handles BOTH the repeating-badge group AND the optional CRITICAL text in one pass: `import re; def normalize(body): body = re.sub(r'^\s*\*\*CRITICAL\*\*\s*', '', body); body = re.sub(r'^\s*(!\[[^\]]*\]\([^)]*gstatic[^)]*\)\s*)+\n*', '', body); return body.strip()[:80]`. Then `hash = sha1_hex(path + ":" + line + ":" + normalize(body))`, computed via Python (portable across macOS/Linux — avoids the `sha1` shell command which is unavailable on most platforms): Build the key explicitly first (`$key` is the concatenation, defined per-finding before hashing). For prior comments, prefer `original_line` over `line` (REST API returns `line: null` for review-API-posted comments; `original_line` carries the value): `prior_line="${original_line:-${line:-}}"; key="$path:$prior_line:$(normalize "$body")"; hash=$(printf -- '%s' "$key" \| python3 -c 'import hashlib,sys; print(hashlib.sha1(sys.stdin.read().encode()).hexdigest())')`. For new findings (which always have a numeric `line`), the same construction with `line` directly produces a compatible hash.. Apply same `normalize`+hash to each `prior_comments[]`. Drop findings whose hash matches an unresolved prior comment. |
 | `post_inline_review(pr, findings, pass)` | The `jq`-built reviews-API POST documented in `agents/reviewer.md` Step 9. Use `event: "COMMENT"` (advisory, never gate). Top-level body matches the "ultimate-developer review pass `<N>`" template below. <br><br> **Cross-schema finding normalization** — the three sub-agent schemas differ on every field name. Before building the jq payload, pre-process each finding into a uniform `{ path, line, body, severity, confidence }` shape: <br>• **reviewer** findings already match: `path`, `line`, `body`, `risk` (→ severity), `confidence` <br>• **validator** findings: parse `location` string (format `<path>:<line>`) → `path` + `line`; synthesize body as `impact + "\n\n**Fix:** " + recommendation`; use `severity` directly; no confidence (default 1.0) <br>• **architect-review** findings: no location field — these have no inline anchor available. Skip inline POST; batch into a single PR-level `gh pr comment` body listing each architect finding with `<title>: <explanation>\n**Suggestion:** <suggestion>` (mirrors reviewer.md Step 8 unmappable-finding fallback). Synthesize severity from `severity` field; default confidence 1.0. <br>• In all cases, prepend the severity badge image to `body` before posting (per reviewer.md Step 9 badge table). <br><br> **Populates `FINDING_META`** — after the POST returns successfully, parse the response's `comments` array (each entry has the `id` GitHub assigned to the comment) and populate the bash assoc array `FINDING_META` (`declare -A FINDING_META` at agent start). Build the entry as `FINDING_META[$comment_id]="${normalized.severity:-MEDIUM}|${normalized.confidence:-1.0}"` using the normalized fields from above — uniform across all three sub-agents. Step F looks up severity + confidence keyed by the comment's databaseId. For architect-review findings posted as a single PR-level comment (no per-finding databaseId), key FINDING_META under that single comment's id and store a JSON array of `{severity, confidence, original_finding}` so Step F can still iterate the underlying findings. Mirror the map entries to `"$REVIEW_LOG"` as `finding_meta[$id]=<sev>|<conf>` so re-entry recovery can restore the map after interruption. |
 | `judge_finding(thread, severity, confidence, spec_context)` | Apply the decision tree above. Returns one of `"fix"`, `"reject"`, `"defer"`. Reason synthesized into the reply text. **Confidence-default rule:** if `confidence` is absent or null on the finding (validator and architect-review schemas omit this field — only reviewer's findings carry it), treat as `1.0`. These agents have already done internal validation before emitting JSON, so their findings should not be discarded by the `< 0.6` threshold. Without this default, every validator/architect finding would silently drop through the decision tree. |
-| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, `"deferred"`, or `"stash_conflict"`. The caller's pseudocode branches on this value (treat `stash_conflict` same as `verification_failed` for retry counting; on the 3rd `stash_conflict` escalate with that reason — pop conflicts rarely auto-resolve). **Critical invariant:** user may have pre-existing uncommitted work when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. Only pop the stash when STASH_CREATED=true — if the working tree was clean at Step 1, there is no stash entry; an unconditional pop would pop unrelated user-saved WIP, causing silent data loss. NEVER drop the stash. **Step 1 — capture pre-state.** `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. Set `STASH_CREATED=true` if `git stash push` reported a new entry (output contains "Saved working directory"), else `STASH_CREATED=false`. The `-u` flag stashes untracked too. Tag with `<thread_id>` so orphan-stash recovery can recognize ours. **Step 2 — apply with explicit path recording.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Apply edits via a wrapper that explicitly populates `STEP2_PATHS_TRACKED` and `STEP2_PATHS_UNTRACKED` arrays. All `STEP2_PATHS_*` entries MUST be relative to the **current git repository root for THIS phase** — `$REPO_ROOT` (meta-repo) during spec/plan phases, `$REPO_DIR` (submodule root, e.g. `moovie/` or `backend/`) during impl phase. Do NOT use meta-repo-relative paths like `moovie/lib/foo.dart` when CWD is already inside `moovie/`; use `lib/foo.dart`. The path-scoped revert and `git add` commands below operate on whatever git considers the current tree. De-duplicate with an empty-array guard before Step 3. If the suggestion is unparseable or contradictory before any edit, run `[ "$STASH_CREATED" = "true" ] && git stash pop` and return `"deferred"`. **Step 3 — verify.** Run the phase's verification command. <br><br> The "revert our edits" referenced below means this EXACT sequence (path-scoped, unstages AND restores worktree AND deletes our untracked — `git restore --staged --worktree` handles BOTH the index and worktree in one call, so the index never sits in mixed state with conflict markers): <br>`[ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ] && git restore --staged --worktree -- "${STEP2_PATHS_TRACKED[@]}" 2>/dev/null \|\| true` <br>`for p in "${STEP2_PATHS_UNTRACKED[@]}"; do find "$p" -depth -delete 2>/dev/null \|\| true; done` (use `find -delete` not `rm -rf` — the repo's `.claude/hooks/block-destructive-commands.sh` blocks `rm -rf` at runtime; `find -depth -delete` is the sanctioned equivalent, works on both files and directory trees, no hook trip) <br><br> Do NOT use `git reset --hard HEAD` for revert — it's repo-wide and would clobber state outside our paths (and won't remove untracked files anyway). <br><br> **On PASS:** stage exactly our paths (with empty-array guard: `[ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ] || [ "${#STEP2_PATHS_UNTRACKED[@]}" -gt 0 ]` — if both empty, return `"deferred"`; nothing was actually edited), then run `[ "$STASH_CREATED" = "true" ] && git stash pop` — only pop when STASH_CREATED=true — so user's prior work returns to the working tree (unstaged). On pop conflict on PASS branch: revert our edits via the sequence above (this both unstages AND restores worktree), leave stash in place, escalate, return `"stash_conflict"`. On FAIL: revert our edits via the sequence above, then run `[ "$STASH_CREATED" = "true" ] && git stash pop` — only pop when STASH_CREATED=true; on pop conflict, escalate and return `"stash_conflict"`. Return `"verification_failed"`. **Per-phase verification commands:** spec/plan: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + markdown link check on touched links; impl moovie: `flutter analyze && flutter test` (CWD is already the submodule — see note below); impl backend: `./gradlew test` (CWD is already the submodule — see note below). **Note:** Impl-phase verification commands assume CWD is the submodule (the loop's `cd $REPO_DIR` has already happened). Do NOT wrap them in `(cd moovie && ...)` or `(cd backend && ...)` — that would fail since CWD is already inside the submodule. |
+| `apply_fix(thread)` | Three-step procedure with explicit return contract: returns `"ok"`, `"verification_failed"`, `"deferred"`, or `"stash_conflict"`. The caller's pseudocode branches on this value (treat `stash_conflict` same as `verification_failed` for retry counting; on the 3rd `stash_conflict` escalate with that reason — pop conflicts rarely auto-resolve). **Critical invariant:** user may have pre-existing uncommitted work when ultimate-developer runs. We MUST preserve it across every apply_fix invocation. Only pop the stash when STASH_CREATED=true — if the working tree was clean at Step 1, there is no stash entry; an unconditional pop would pop unrelated user-saved WIP, causing silent data loss. NEVER drop the stash. **Step 1 — capture pre-state.** `git stash push -u -m "ud-apply_fix-pre-<thread_id>"`. Set `STASH_CREATED=true` if `git stash push` reported a new entry (output contains "Saved working directory"), else `STASH_CREATED=false`. The `-u` flag stashes untracked too. Tag with `<thread_id>` so orphan-stash recovery can recognize ours. **Step 2 — apply with explicit path recording.** Use `Read` to inspect cited file (`thread.location` = `path:line`). Apply edits via a wrapper that explicitly populates `STEP2_PATHS_TRACKED` and `STEP2_PATHS_UNTRACKED` arrays. All `STEP2_PATHS_*` entries MUST be relative to the **current git repository root for THIS phase** — `$REPO_ROOT` (meta-repo) during spec/plan phases, `$REPO_DIR` (submodule root, e.g. `muuvie/` or `backend/`) during impl phase. Do NOT use meta-repo-relative paths like `muuvie/lib/foo.dart` when CWD is already inside `muuvie/`; use `lib/foo.dart`. The path-scoped revert and `git add` commands below operate on whatever git considers the current tree. De-duplicate with an empty-array guard before Step 3. If the suggestion is unparseable or contradictory before any edit, run `[ "$STASH_CREATED" = "true" ] && git stash pop` and return `"deferred"`. **Step 3 — verify.** Run the phase's verification command. <br><br> The "revert our edits" referenced below means this EXACT sequence (path-scoped, unstages AND restores worktree AND deletes our untracked — `git restore --staged --worktree` handles BOTH the index and worktree in one call, so the index never sits in mixed state with conflict markers): <br>`[ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ] && git restore --staged --worktree -- "${STEP2_PATHS_TRACKED[@]}" 2>/dev/null \|\| true` <br>`for p in "${STEP2_PATHS_UNTRACKED[@]}"; do find "$p" -depth -delete 2>/dev/null \|\| true; done` (use `find -delete` not `rm -rf` — the repo's `.claude/hooks/block-destructive-commands.sh` blocks `rm -rf` at runtime; `find -depth -delete` is the sanctioned equivalent, works on both files and directory trees, no hook trip) <br><br> Do NOT use `git reset --hard HEAD` for revert — it's repo-wide and would clobber state outside our paths (and won't remove untracked files anyway). <br><br> **On PASS:** stage exactly our paths (with empty-array guard: `[ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ] || [ "${#STEP2_PATHS_UNTRACKED[@]}" -gt 0 ]` — if both empty, return `"deferred"`; nothing was actually edited), then run `[ "$STASH_CREATED" = "true" ] && git stash pop` — only pop when STASH_CREATED=true — so user's prior work returns to the working tree (unstaged). On pop conflict on PASS branch: revert our edits via the sequence above (this both unstages AND restores worktree), leave stash in place, escalate, return `"stash_conflict"`. On FAIL: revert our edits via the sequence above, then run `[ "$STASH_CREATED" = "true" ] && git stash pop` — only pop when STASH_CREATED=true; on pop conflict, escalate and return `"stash_conflict"`. Return `"verification_failed"`. **Per-phase verification commands:** spec/plan: `.claude/hooks/validate-audit-only.sh <each-modified-audit-only-agent>` + markdown link check on touched links; impl muuvie: `flutter analyze && flutter test` (CWD is already the submodule — see note below); impl backend: `./gradlew test` (CWD is already the submodule — see note below). **Note:** Impl-phase verification commands assume CWD is the submodule (the loop's `cd $REPO_DIR` has already happened). Do NOT wrap them in `(cd muuvie && ...)` or `(cd backend && ...)` — that would fail since CWD is already inside the submodule. |
 | `commit_and_push(message)` | Preconditions: `apply_fix` returned `"ok"` (verification passed). Stage exactly the paths recorded in Step 2, with an empty-array guard (`git add ""` with no args expanded crashes; an empty add is a no-op but the empty quoted string is fatal): `[ "${#STEP2_PATHS_TRACKED[@]}" -gt 0 ] && git add -- "${STEP2_PATHS_TRACKED[@]}"; [ "${#STEP2_PATHS_UNTRACKED[@]}" -gt 0 ] && git add -- "${STEP2_PATHS_UNTRACKED[@]}"` (NEVER `git add -A`); secret-scan via the regex in Safety Circuits; `git commit -m "$message"`; `git push origin "$(git symbolic-ref --short HEAD)"`. If any step exits non-zero, propagate to caller (which escalates per Safety Circuits #7). When in impl phase, this runs inside the submodule (`cd "$REPO_DIR"` was done in Setup). |
 | `increment_fix_attempts(thread_id)` / `reset_fix_attempts(thread_id)` | Per-thread fix-attempt counter. **Storage:** in-process bash associative array `FIX_ATTEMPTS` (`declare -A FIX_ATTEMPTS` at agent start), plus a mirrored line in `"$REVIEW_LOG"` (absolute path — set after kickoff; primitives must not use a relative path here since CWD shifts during impl phase) so the counter survives mid-loop interruption + re-entry. **Key:** `thread_id` (the `node_id` from `gh_root_comments`, stable across passes). **Increment:** `FIX_ATTEMPTS[$thread_id]=$((${FIX_ATTEMPTS[$thread_id]:-0}+1)); echo "fix_attempts[$thread_id]=${FIX_ATTEMPTS[$thread_id]}" >> "$REVIEW_LOG"`; returns the new value. **Reset (on successful commit):** `unset 'FIX_ATTEMPTS[$thread_id]'; echo "fix_attempts[$thread_id]=0" >> "$REVIEW_LOG"`. **Recovery on re-entry:** scan `"$REVIEW_LOG"` for the latest `fix_attempts[$id]=N` line per id and restore the in-memory map. **Cap:** 3. |
 | `head_sha()` | `git rev-parse --short HEAD` — short SHA for compact reply text. |
@@ -519,7 +519,7 @@ You are the SOLE author of all PR thread replies and resolutions. Sub-agents in 
 
 ```bash
 # Resolve current repo from the working tree so the agent is fork-portable.
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)   # e.g. "mobyleOfficial/MoovieAi"
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)   # e.g. "mobyleOfficial/MuuvieAi"
 OWNER="${REPO%%/*}"
 REPO_NAME="${REPO##*/}"
 ```
@@ -740,7 +740,7 @@ Each git repository (meta-repo + each submodule) has its OWN stash stack — `gi
 
 ```bash
 check_orphan_stashes_in_cwd() {
-  local repo_label="$1"  # e.g. "meta-repo" or "moovie" — for the escalation detail
+  local repo_label="$1"  # e.g. "meta-repo" or "muuvie" — for the escalation detail
   mapfile -t orphan_stashes < <(git stash list | awk -F': ' '/On .*: ud-apply_fix-pre-/{print $1}')
   if [ "${#orphan_stashes[@]}" -gt 0 ]; then
     # Refuse to clobber. The user may have unrelated work in the stash or want to inspect it.
@@ -849,7 +849,7 @@ After all phases complete (or on escalation), print a final report to stdout:
 
 **Slug:** <slug>
 **Target branch:** <target>
-**Scope:** <moovie|backend|both>
+**Scope:** <muuvie|backend|both>
 **Status:** COMPLETE | ESCALATED (<reason>)
 
 ## Phases
@@ -859,7 +859,7 @@ After all phases complete (or on escalation), print a final report to stdout:
 | Spec  | #<N> | <i> | merged | <SHA> |
 | Plan  | #<N> | <i> | merged | <SHA> |
 | Impl (backend) | #<N> | <i> | merged | <SHA> |
-| Impl (moovie)  | #<N> | <i> | merged | <SHA> |
+| Impl (muuvie)  | #<N> | <i> | merged | <SHA> |
 | Submodule bump | #<N> | — | merged | <SHA> |
 
 ## Artifacts

@@ -1,6 +1,6 @@
 # .claude/CLAUDE.md
 
-Claude/tooling-specific behavior for the MoovieAi meta-repo.
+Claude/tooling-specific behavior for the MuuvieAi meta-repo.
 
 > **Scope:** this file governs *how* Claude operates in this repo — tool choices, hook expectations, subagent dispatch, output formatting. For *what* the project is (architecture, conventions, build/run commands), see the root [`CLAUDE.md`](../CLAUDE.md). Both files load each session.
 
@@ -63,7 +63,7 @@ Default invocation (no `mode` flag) keeps full GH-writing behavior — used by `
 
 The following skills should be invoked proactively when their trigger fits. Skills are exposed as slash commands — humans type `/<skill-name>`; the `Skill("<name>")` tool form is for programmatic invocation from within agents:
 
-- `/moovie-research-format` — when writing or editing research docs in `research/`.
+- `/muuvie-research-format` — when writing or editing research docs in `research/`.
 - `/setting-up-linear-mcp` — when configuring Linear MCP for the first time or rotating tokens.
 
 Note: docs-sync is now hook-enforced (`.claude/hooks/check-docs-sync.sh` blocks `gh pr create` / `git push` when public-surface changes lack matching doc updates), so `/verify-docs-before-pr` does not need to be called proactively. It remains available as a manual pre-flight self-check.

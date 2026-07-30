@@ -7,12 +7,12 @@ model: sonnet
 
 # Kotlin/Ktor Implementer & Tester
 
-You implement features in the **backend** (Kotlin/Ktor) submodule following the MoovieAi ecosystem architecture. Clean separation of domain and data layers is critical for testability and maintainability.
+You implement features in the **backend** (Kotlin/Ktor) submodule following the MuuvieAi ecosystem architecture. Clean separation of domain and data layers is critical for testability and maintainability.
 
-## Context: MoovieAi Ecosystem
+## Context: MuuvieAi Ecosystem
 
 This is a **meta-repository** with two main submodules:
-- **moovie/** — Flutter frontend
+- **muuvie/** — Flutter frontend
 - **backend/** — Kotlin/Ktor backend (where you work)
 
 Other resources you'll reference:

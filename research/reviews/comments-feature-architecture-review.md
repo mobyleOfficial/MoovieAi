@@ -27,7 +27,7 @@ The specification correctly identifies and implements the three-layer architectu
 
 The dependency direction `UI → Data → Domain` matches the existing movies feature structure exactly. The use of sealed states (`Loading`, `Success`, `Error`) for the Cubit aligns with patterns in `social`, `search`, and `public_profile` UI modules. Use of `Result<T>` for error handling via data sources mirrors the existing implementation in `MoviesRemoteDataSource`.
 
-**Evidence:** Specification §"Architecture Overview" + comparison against `moovie/features/movies/` structure confirms alignment.
+**Evidence:** Specification §"Architecture Overview" + comparison against `muuvie/features/movies/` structure confirms alignment.
 
 ---
 
@@ -44,7 +44,7 @@ The feature is fully implementable with the project's current stack:
 
 The use of sealed classes for state, Cubit for state management, and factory construction for use cases all follow established patterns in the codebase. Mocking 30+ comments across 3+ content types is straightforward—no external API complexity required for MVP.
 
-**Evidence:** All required dependencies present in `moovie/pubspec.yaml`; DI pattern proven in `lib/di/injection.config.dart` and `moovie/features/movies/data/lib/di/movies_di_module.dart`.
+**Evidence:** All required dependencies present in `muuvie/pubspec.yaml`; DI pattern proven in `lib/di/injection.config.dart` and `muuvie/features/movies/data/lib/di/movies_di_module.dart`.
 
 ---
 
@@ -54,7 +54,7 @@ The use of sealed classes for state, Cubit for state management, and factory con
 
 Clear frontend/backend separation maintained:
 
-- **Frontend only:** Comments feature lives entirely in `moovie/` (feature package + UI module)
+- **Frontend only:** Comments feature lives entirely in `muuvie/` (feature package + UI module)
 - **Backend deferred:** Specification explicitly defers real endpoint to Phase 2 ("Backend will implement real endpoint in Phase 2")
 - **AI-agnostic submodules:** Specification makes no reference to Claude-specific configuration, CLAUDE.md, or .claude/ folders in child repos
 - **API contract defined:** Section "Backend API Contract (Future)" provides clear contract for backend team when ready
@@ -215,7 +215,7 @@ Specification enforces quality standards:
 
 ## Cross-Repo Impact Analysis
 
-### Frontend (Moovie) — Changes Required
+### Frontend (Muuvie) — Changes Required
 
 **Feature Package (New):**
 - `features/comments/pubspec.yaml` — New feature barrel
@@ -242,7 +242,7 @@ Specification enforces quality standards:
 **Testing:**
 - Create `test/features/comments/` — Mirror feature structure with unit and widget tests
 
-### Backend (MoovieBackend) — No Changes (MVP)
+### Backend (MuuvieBackend) — No Changes (MVP)
 
 - Frontend uses mocked data source; no backend endpoint required for MVP
 - When backend implements real endpoint (Phase 2), endpoint should match API contract in specification §"Backend API Contract (Future)"

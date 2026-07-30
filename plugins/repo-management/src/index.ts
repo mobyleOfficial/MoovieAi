@@ -38,7 +38,7 @@ function checkoutDevBaseAndPull(): void {
 
 // Submodule name allowlist — guards branch-name and path arguments that
 // otherwise could be abused for git option/flag injection.
-const SUBMODULES = new Set(["moovie", "backend"]);
+const SUBMODULES = new Set(["muuvie", "backend"]);
 function assertSubmodule(name: string): void {
   if (!SUBMODULES.has(name)) {
     throw new Error(
@@ -127,7 +127,7 @@ const handlers: Record<string, ToolHandler> = {
     checkoutDevBaseAndPull();
     run("git", ["checkout", "-b", branchName]);
 
-    await handlers["sync-submodule"]({ name: "moovie" });
+    await handlers["sync-submodule"]({ name: "muuvie" });
     await handlers["sync-submodule"]({ name: "backend" });
 
     return `✓ Created feature branch '${branchName}' (submodules synced)`;
@@ -144,7 +144,7 @@ const handlers: Record<string, ToolHandler> = {
     checkoutDevBaseAndPull();
     run("git", ["checkout", "-b", branchName]);
 
-    await handlers["sync-submodule"]({ name: "moovie" });
+    await handlers["sync-submodule"]({ name: "muuvie" });
     await handlers["sync-submodule"]({ name: "backend" });
 
     return `✓ Created release branch '${branchName}' (submodules synced)`;
@@ -195,18 +195,18 @@ const handlers: Record<string, ToolHandler> = {
   "check-status": async () => {
     const lines = (s: string) => s.trim().split("\n");
 
-    const moovieLines = lines(
-      run("git", ["-C", "moovie", "rev-parse", "HEAD", "origin/main"])
+    const muuvieLines = lines(
+      run("git", ["-C", "muuvie", "rev-parse", "HEAD", "origin/main"])
     );
     const backendLines = lines(
       run("git", ["-C", "backend", "rev-parse", "HEAD", "origin/main"])
     );
 
-    const moovieStale = moovieLines[0] !== moovieLines[1];
+    const muuvieStale = muuvieLines[0] !== muuvieLines[1];
     const backendStale = backendLines[0] !== backendLines[1];
 
     let status = "Submodule Status:\n";
-    status += `  moovie:  ${moovieStale ? "⚠ STALE" : "✓ up to date"}\n`;
+    status += `  muuvie:  ${muuvieStale ? "⚠ STALE" : "✓ up to date"}\n`;
     status += `  backend: ${backendStale ? "⚠ STALE" : "✓ up to date"}`;
     return status;
   },
@@ -222,7 +222,7 @@ const toolDefinitions = [
       properties: {
         name: {
           type: "string",
-          description: "Submodule name (moovie or backend)",
+          description: "Submodule name (muuvie or backend)",
         },
       },
       required: ["name"],

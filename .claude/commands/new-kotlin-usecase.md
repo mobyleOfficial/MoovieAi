@@ -5,7 +5,7 @@ description: Scaffold a new usecase in the backend domain layer (Kotlin)
 
 # New Kotlin UseCase Scaffold
 
-Create a reusable business logic usecase for the Ktor backend following the MoovieAi pattern.
+Create a reusable business logic usecase for the Ktor backend following the MuuvieAi pattern.
 
 ## Usage
 

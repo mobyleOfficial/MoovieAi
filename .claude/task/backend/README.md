@@ -1,6 +1,6 @@
 # Backend Feature Pipeline
 
-Structured task tracking for Kotlin/Ktor backend features using the MoovieAi pipeline.
+Structured task tracking for Kotlin/Ktor backend features using the MuuvieAi pipeline.
 
 ## Directory Structure
 
@@ -116,7 +116,7 @@ Update `pipeline-queue.json` as you progress:
 | **Implementer Agent** | `implementer-tester` | `backend-implementer` |
 | **Tech Stack** | Flutter/Dart | Kotlin/Ktor |
 | **Skills Used** | `/new-usecase`, `/new-datasource`, `/new-repository`, `/new-ui-module` | `/new-kotlin-usecase`, `/new-kotlin-datasource`, `/new-kotlin-repository`, `/new-ktor-endpoint` |
-| **Code Output** | moovie/{features,ui,lib}/** | backend/src/main/kotlin/...** |
+| **Code Output** | muuvie/{features,ui,lib}/** | backend/src/main/kotlin/...** |
 | **DI Framework** | GetIt | Koin |
 | **Error Handling** | Result<T> wrapper | Exception bubbling |
 | **Async Model** | Future/Stream | Suspend functions |

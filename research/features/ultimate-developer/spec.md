@@ -15,9 +15,9 @@ tags: [agent, pipeline, automation, autonomous]
 
 ## Executive Summary
 
-`ultimate-developer` is an autonomous end-to-end feature builder for the MoovieAi ecosystem. After a single brainstorm at kickoff, it writes a spec, plans the implementation (with research delegated to a new per-topic `researcher` sub-agent — one file per topic, linked from the plan), implements the code, and drives a multi-pass review-and-iterate loop on each phase's PR — all without further user input until merge or escalation. It reuses the existing pipeline agents (`pm-spec`, `architect-review`, `implementer-tester`, `validator`, `reviewer`) via a new `mode: "audit-only"` flag that suppresses their GitHub-writing behavior so ultimate-developer owns every PR comment, reply, and resolution. The agent merges autonomously when each phase's review loop converges; it pauses only on iteration-cap, hard safety boundaries, or unrecoverable errors.
+`ultimate-developer` is an autonomous end-to-end feature builder for the MuuvieAi ecosystem. After a single brainstorm at kickoff, it writes a spec, plans the implementation (with research delegated to a new per-topic `researcher` sub-agent — one file per topic, linked from the plan), implements the code, and drives a multi-pass review-and-iterate loop on each phase's PR — all without further user input until merge or escalation. It reuses the existing pipeline agents (`pm-spec`, `architect-review`, `implementer-tester`, `validator`, `reviewer`) via a new `mode: "audit-only"` flag that suppresses their GitHub-writing behavior so ultimate-developer owns every PR comment, reply, and resolution. The agent merges autonomously when each phase's review loop converges; it pauses only on iteration-cap, hard safety boundaries, or unrecoverable errors.
 
-**Recommendation:** ship as a thin orchestrator (Approach C) that wraps existing agents, plus a new `backend-implementer` for cross-repo features and a new `researcher` sub-agent for plan-phase investigation. v1 scope: full spec→plan→impl cycle for moovie, backend, or both; configurable per-phase iteration caps; per-feature documentation folder under `research/features/<slug>/` with a `research/` subfolder holding one file per researcher invocation; plan doc links to those files via `## Research References`.
+**Recommendation:** ship as a thin orchestrator (Approach C) that wraps existing agents, plus a new `backend-implementer` for cross-repo features and a new `researcher` sub-agent for plan-phase investigation. v1 scope: full spec→plan→impl cycle for muuvie, backend, or both; configurable per-phase iteration caps; per-feature documentation folder under `research/features/<slug>/` with a `research/` subfolder holding one file per researcher invocation; plan doc links to those files via `## Research References`.
 
 ## Problem Statement
 
@@ -63,7 +63,7 @@ Scope boundaries:
 **Verdict**: Rejected — duplication tax outweighs separation benefit when phases are sequential anyway.
 
 ### Option C: Orchestrator over Existing Pipeline (Recommended)
-**Description**: `ultimate-developer` wraps existing pipeline agents. Spec phase → dispatch `pm-spec` + `architect-review` (audit-only). Plan phase → dispatch new `researcher` agent per topic in parallel, then write plan inline (no existing plan-writer agent today) linking to research files + dispatch `reviewer` (audit-only). Impl phase → dispatch `implementer-tester` (moovie) and/or new `backend-implementer` (backend) + dispatch `reviewer` + `validator` (both audit-only). Ultimate-developer owns branch ops, PR ops, review loop driver, GH thread authoring, cross-repo coordination, autonomous merging.
+**Description**: `ultimate-developer` wraps existing pipeline agents. Spec phase → dispatch `pm-spec` + `architect-review` (audit-only). Plan phase → dispatch new `researcher` agent per topic in parallel, then write plan inline (no existing plan-writer agent today) linking to research files + dispatch `reviewer` (audit-only). Impl phase → dispatch `implementer-tester` (muuvie) and/or new `backend-implementer` (backend) + dispatch `reviewer` + `validator` (both audit-only). Ultimate-developer owns branch ops, PR ops, review loop driver, GH thread authoring, cross-repo coordination, autonomous merging.
 
 **Pros**:
 - Smallest diff to existing pipeline [Source: agents/README.md, agents/*.md]
@@ -91,7 +91,7 @@ Approach C — orchestrator wrapping existing pipeline + new `backend-implemente
 PHASE 0 — Kickoff (ONLY user touchpoint)
     • Skill(superpowers:brainstorming) → user Q&A
     • Ask: target branch (main / develop / epic/<x>)
-    • Ask: scope (moovie / backend / both)
+    • Ask: scope (muuvie / backend / both)
     • Output: brainstorm transcript + parameters
     │
     ▼
@@ -143,7 +143,7 @@ PHASE 3 — Implementation
 |-------|---------------|---------|
 | Spec | `feature/<slug>-spec` (meta-repo) | `<target>` |
 | Plan | `feature/<slug>-plan` (meta-repo) | `<target>` |
-| Impl (moovie) | `feature/<slug>` (moovie submodule) | `<target>` in moovie |
+| Impl (muuvie) | `feature/<slug>` (muuvie submodule) | `<target>` in muuvie |
 | Impl (backend) | `feature/<slug>` (backend submodule) | `<target>` in backend |
 | Submodule ref bump | `chore/<slug>-bump-refs` (meta-repo) | `<target>` |
 
@@ -151,7 +151,7 @@ PHASE 3 — Implementation
 
 Each PR body includes a marker comment for re-entry recovery:
 ```
-<!-- ultimate-developer:phase=spec|plan|impl repo=meta|moovie|backend slug=<slug> -->
+<!-- ultimate-developer:phase=spec|plan|impl repo=meta|muuvie|backend slug=<slug> -->
 ```
 
 ### Review Loop Driver (Per Phase)
@@ -232,7 +232,7 @@ Plan doc does NOT embed research content (would bloat the doc). Instead, ultimat
 - Behavior: invokes `WebSearch` + `WebFetch` against authoritative sources, writes a single markdown file at `<path>` following the template below, then returns a one-line summary suitable for the plan's reference list
 - Default model: `sonnet` (research is read+synthesize, doesn't need opus orchestration)
 
-**Researcher output template** (file format, with YAML header per moovie-research-format):
+**Researcher output template** (file format, with YAML header per muuvie-research-format):
 
 ```markdown
 ---
@@ -311,14 +311,14 @@ research/features/<slug>/
 
 ### Cross-Repo Handling
 
-User picks scope at kickoff: `moovie` / `backend` / `both`.
+User picks scope at kickoff: `muuvie` / `backend` / `both`.
 
 **Single-repo flow** — checkout submodule's `<target>` branch, create `feature/<slug>`, dispatch matching implementer, PR + loop + merge, then meta-repo bump PR.
 
 **Cross-repo flow** (both) — backend first:
 1. Backend impl phase A: branch, dispatch `backend-implementer`, PR + loop + merge in backend
-2. Capture merged backend API contract (endpoints, request/response shapes) from spec or merged code → pass to moovie implementer prompt
-3. Moovie impl phase B: branch, dispatch `implementer-tester` (with backend SHA + contract in prompt), PR + loop + merge in moovie
+2. Capture merged backend API contract (endpoints, request/response shapes) from spec or merged code → pass to muuvie implementer prompt
+3. Muuvie impl phase B: branch, dispatch `implementer-tester` (with backend SHA + contract in prompt), PR + loop + merge in muuvie
 4. Final meta-repo `chore/<slug>-bump-refs` PR bumps BOTH submodule refs in one commit
 
 ### Safety Circuits + Escalation
@@ -397,7 +397,7 @@ Suggested action: <what user should decide>
 2. How ultimate-developer reads JSON output of Task-dispatched sub-agents — Task tool returns a single message; parse JSON from stdout/last message
 3. Backend rules content — what exactly goes in `rules/backend-architecture.md` and `rules/backend-testing.md`; may require a small upfront audit of existing `backend/` code
 4. Whether `research/features/<slug>/review-log.md` should be machine-parseable (structured YAML/JSON appended per iteration) or free-form markdown — affects re-entry recovery if agent is interrupted mid-loop
-5. Cross-repo API contract handoff — exact format for passing backend endpoint contract to moovie implementer (likely embed in moovie implementer-tester prompt as a code block)
+5. Cross-repo API contract handoff — exact format for passing backend endpoint contract to muuvie implementer (likely embed in muuvie implementer-tester prompt as a code block)
 6. Researcher topic enumeration heuristics — how does ultimate-developer decide which topics warrant their own research file? Proposed: every new third-party resource (library, API, framework) introduced in the plan + every "novel UX/pattern" the spec references gets one file. Need explicit rule to avoid over-research (e.g., don't research Flutter `Text` widget).
 7. Researcher parallel-dispatch cap — what if topic list grows to 20+? Proposed: cap parallel `Task(researcher)` calls at 5, queue the rest.
 8. Researcher output deterministic-ness — two invocations on same topic should produce reasonably similar files; need a stable template + prompt phrasing in `agents/researcher.md` to make this true.
@@ -414,4 +414,4 @@ Trade-offs accepted by choosing C: must maintain `mode` flag plumbing across 4 a
 - [ ] Invoke `superpowers:writing-plans` to produce detailed implementation plan with research section (target: research/features/ultimate-developer/plan.md)
 - [ ] Plan covers: file-by-file edits, ordering of mode-flag rollout across agents, backend rules content, JSON schemas for audit-only outputs, test strategy for ultimate-developer's loop driver
 - [ ] After plan approved → implement in order: backend rules → audit-only flags on existing agents → backend-implementer → ultimate-developer → slash command → docs sync
-- [ ] First real run: pick a small moovie-only feature as smoke test; verify each phase + cap behavior
+- [ ] First real run: pick a small muuvie-only feature as smoke test; verify each phase + cap behavior

@@ -15,7 +15,7 @@ You review feature proposals and design decisions for technical feasibility, arc
 - Assess compatibility with both frontend (Flutter/Dart) and backend (Kotlin/Ktor) stacks
 - Check for conflicts with existing patterns and submodule boundaries
 - Validate technical approach aligns with Clean Architecture (features, domain/data layers)
-- Identify dependencies between moovie (frontend) and backend submodules
+- Identify dependencies between muuvie (frontend) and backend submodules
 - Do NOT modify any source code files
 
 ## What to Review Against
@@ -26,7 +26,7 @@ You review feature proposals and design decisions for technical feasibility, arc
 
 ## Review Criteria
 1. **Architecture Alignment** — Fits Clean Architecture? Respects feature/domain/data layers?
-2. **Ecosystem Fit** — Aligns with Flutter/Dart patterns (moovie) or Kotlin/Ktor patterns (backend)?
+2. **Ecosystem Fit** — Aligns with Flutter/Dart patterns (muuvie) or Kotlin/Ktor patterns (backend)?
 3. **Submodule Boundaries** — Clear separation between frontend and backend concerns?
 4. **Feasibility** — Achievable with our tech stack and patterns?
 5. **Dependencies** — Prerequisites and inter-module dependencies identified?
@@ -40,7 +40,7 @@ Write review document with:
 - **Reasoning** for each criterion
 - **Blockers** if rejected (required changes)
 - **Recommendations** if approved (implementation guidance, affected files/modules)
-- **Cross-Repo Impact** — Does this touch both moovie and backend? What's the API contract?
+- **Cross-Repo Impact** — Does this touch both muuvie and backend? What's the API contract?
 
 ## Audit-Only Mode
 
@@ -59,7 +59,7 @@ When the invoking prompt contains `mode: "audit-only"`:
   "recommendations": [
     {"area": "<what>", "guidance": "<concrete advice>"}
   ],
-  "cross_repo_impact": "<sentence describing moovie/backend split or 'none'>",
+  "cross_repo_impact": "<sentence describing muuvie/backend split or 'none'>",
   "findings": [
     {
       "severity": "critical" | "high" | "medium" | "low",

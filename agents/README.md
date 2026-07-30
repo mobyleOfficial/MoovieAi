@@ -1,14 +1,14 @@
 # Agents
 
-Custom Claude agents for specialized tasks in the MoovieAi ecosystem. These form a feature development pipeline.
+Custom Claude agents for specialized tasks in the MuuvieAi ecosystem. These form a feature development pipeline.
 
 ## Available Agents
 
 - **pm-spec** — Product manager that writes feature specifications for the ecosystem
 - **architect-review** — Technical architect that reviews specs for feasibility and ecosystem alignment
-- **implementer-tester** — Flutter/Dart implementer that builds features in the moovie submodule with full test coverage
+- **implementer-tester** — Flutter/Dart implementer that builds features in the muuvie submodule with full test coverage
 - **backend-implementer** — Kotlin/Ktor implementer that builds backend features in the backend submodule with full test coverage
-- **code-reviewer** — Code review specialist that validates code quality across moovie and backend submodules
+- **code-reviewer** — Code review specialist that validates code quality across muuvie and backend submodules
 - **validator** — Strict read-only validator that catches issues before merge
 
 ## Pipeline Usage
@@ -25,6 +25,6 @@ For features requiring both frontend and backend:
 - Start with **backend-implementer** (endpoints and business logic)
 - Then **implementer-tester** (UI consuming the backend APIs)
 
-Each agent has specific tool allowlists and responsibilities defined in its metadata. All agents understand the MoovieAi ecosystem structure and can work across the moovie and backend submodules.
+Each agent has specific tool allowlists and responsibilities defined in its metadata. All agents understand the MuuvieAi ecosystem structure and can work across the muuvie and backend submodules.
 
 See [CLAUDE.md](../CLAUDE.md) for ecosystem-wide guidance.

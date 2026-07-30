@@ -21,7 +21,7 @@ Run this before `/open-pull-request` to catch out-of-sync docs.
 - `plugins/` modifications
 - `agents/` changes
 - `rules/` updates
-- `moovie/` or `backend/` structure changes
+- `muuvie/` or `backend/` structure changes
 - Dependency updates (`package.json`, gradle, `pubspec.yaml`, `Gemfile`, `.env`, docker)
 
 ## Output

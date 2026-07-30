@@ -15,7 +15,7 @@ The invoking message must specify a PR number (e.g. "review PR #12") or a PR URL
 
 ## Repository Context
 
-- Repo: `mobyleOfficial/MoovieAi`
+- Repo: `mobyleOfficial/MuuvieAi`
 - Main: `main` (release target)
 - Default base: `develop`
 - Reviewers live at `agents/reviewers/{security,bug-finder,architecture}.md`
@@ -41,14 +41,14 @@ If existing inline review comments exist on the PR:
 
 - List **root** comments only (skip replies — otherwise each reply re-triggers the resolution dance for its parent thread). Add `--paginate` so PRs with many discussions aren't truncated:
   ```bash
-  gh api --paginate repos/mobyleOfficial/MoovieAi/pulls/<N>/comments \
+  gh api --paginate repos/mobyleOfficial/MuuvieAi/pulls/<N>/comments \
     --jq '.[] | select(.in_reply_to_id == null) | {id, node_id, path, line, body, user: .user.login}'
   ```
 - For each root comment, read the file at the new HEAD commit (`gh pr view <N> --json headRefOid`).
 - If the issue described in the comment is no longer present:
   1. Post a reply on the thread:
      ```bash
-     gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/comments/<comment_id>/replies -X POST -f body="Resolved in <SHA>."
+     gh api repos/mobyleOfficial/MuuvieAi/pulls/<N>/comments/<comment_id>/replies -X POST -f body="Resolved in <SHA>."
      ```
   2. Mark the review thread as RESOLVED via GraphQL (collapses the thread in the GitHub UI; humans don't have to click "Resolve" per thread).
 
@@ -63,7 +63,7 @@ If existing inline review comments exist on the PR:
              }
            }
          }
-       }' -f owner=mobyleOfficial -f repo=MoovieAi -F pr=<N> \
+       }' -f owner=mobyleOfficial -f repo=MuuvieAi -F pr=<N> \
        --jq ".data.repository.pullRequest.reviewThreads.nodes[] |
               select(.comments.nodes[0].databaseId == <comment_id>) |
               {id, isResolved}")
@@ -182,7 +182,7 @@ SHA=$(gh pr view <N> --json headRefOid --jq .headRefOid)
 Increment by counting prior reviews this agent has produced on the PR — every reviewer-agent review is posted by the GitHub user that owns the token (the maintainer in this repo), with body starting `## Code Review (pass `:
 
 ```bash
-PASS=$(( $(gh api --paginate repos/mobyleOfficial/MoovieAi/pulls/<N>/reviews \
+PASS=$(( $(gh api --paginate repos/mobyleOfficial/MuuvieAi/pulls/<N>/reviews \
   --jq '[.[] | select(.body | startswith("## Code Review (pass "))] | length') + 1 ))
 ```
 
@@ -207,7 +207,7 @@ jq -n \
   --arg top "<top-level summary body — see format below>" \
   --argjson comments "$findings_json" \
   '{ commit_id: $sha, event: "COMMENT", body: $top, comments: $comments }' \
-| gh api repos/mobyleOfficial/MoovieAi/pulls/<N>/reviews -X POST --input -
+| gh api repos/mobyleOfficial/MuuvieAi/pulls/<N>/reviews -X POST --input -
 ```
 
 Notes:
@@ -229,7 +229,7 @@ Every comment body MUST lead with the appropriate severity badge image. These re
 | Medium | `![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)` |
 | Low | `![low](https://www.gstatic.com/codereviewagent/low-priority.svg)` |
 
-> **Asset stability caveat.** `https://www.gstatic.com/codereviewagent/...` is an undocumented Google CDN endpoint shared with the gemini-code-assist bot. Google can rotate or remove it at any time — every prior review's badge would then render broken. We accept this tradeoff for visual parity. If the assets ever break, mirror the SVGs into `.claude/assets/` and reference via `https://raw.githubusercontent.com/mobyleOfficial/MoovieAi/main/.claude/assets/<name>.svg` (or a stable CDN). Single point of change: this table.
+> **Asset stability caveat.** `https://www.gstatic.com/codereviewagent/...` is an undocumented Google CDN endpoint shared with the gemini-code-assist bot. Google can rotate or remove it at any time — every prior review's badge would then render broken. We accept this tradeoff for visual parity. If the assets ever break, mirror the SVGs into `.claude/assets/` and reference via `https://raw.githubusercontent.com/mobyleOfficial/MuuvieAi/main/.claude/assets/<name>.svg` (or a stable CDN). Single point of change: this table.
 
 For security findings, prefer the security-specific badge (gemini does this too):
 

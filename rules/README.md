@@ -16,7 +16,7 @@ These rules fire automatically on every applicable action.
 
 ## Flutter / Submodule-scoped Rules (per-agent enforcement)
 
-These rules apply when working inside the `moovie/` submodule. They are enforced by the `implementer-tester` agent, whose `Stop` hook chain runs `flutter analyze` + `flutter test` + structural validators. Hook scripts live in `.claude/hooks/` but are not project-wide.
+These rules apply when working inside the `muuvie/` submodule. They are enforced by the `implementer-tester` agent, whose `Stop` hook chain runs `flutter analyze` + `flutter test` + structural validators. Hook scripts live in `.claude/hooks/` but are not project-wide.
 
 | Rule | Enforcement |
 |------|-------------|

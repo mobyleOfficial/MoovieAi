@@ -1,6 +1,6 @@
 # repo-management MCP Server
 
-CLI and MCP tools for managing the Moovie ecosystem repositories (submodules, branches, pull requests).
+CLI and MCP tools for managing the Muuvie ecosystem repositories (submodules, branches, pull requests).
 
 ## Installation
 
@@ -57,7 +57,7 @@ Display sync status of all submodules.
 check-status
 # Output:
 # Submodule Status:
-#   moovie:  ✓ up to date
+#   muuvie:  ✓ up to date
 #   backend: ⚠ STALE
 ```
 

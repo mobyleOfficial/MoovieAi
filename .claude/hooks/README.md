@@ -14,7 +14,7 @@ Wired into `.claude/settings.json` under the `hooks` block. Fire on every sessio
 | `block-destructive-commands.sh` | `PreToolUse` Bash | Blocks `rm -rf`, `git push --force`, `git reset --hard`, etc. |
 | `check-coauthor.sh` | `PreToolUse` Bash | Blocks `git commit` containing `Co-Authored-By` trailers (enforces `rules/common/NO_COAUTHORS.md`) |
 | `check-python-env.sh` | `PreToolUse` Bash | Blocks `pip` / `uv pip` / `poetry` / `conda install` outside an active virtualenv (enforces `rules/common/PYTHON_ENVS.md`) |
-| `check-submodule-ai.sh` | `PreToolUse` Bash | Blocks `git commit` / `git push` when the operation actually involves `moovie/` or `backend/` AND that submodule's *tracked* files include AI-tooling paths (enforces `rules/common/AI_AGNOSTIC_SUBMODULES.md`). No-op when the change set does not touch a submodule path. |
+| `check-submodule-ai.sh` | `PreToolUse` Bash | Blocks `git commit` / `git push` when the operation actually involves `muuvie/` or `backend/` AND that submodule's *tracked* files include AI-tooling paths (enforces `rules/common/AI_AGNOSTIC_SUBMODULES.md`). No-op when the change set does not touch a submodule path. |
 | `check-docs-sync.sh` | `PreToolUse` Bash | Blocks `gh pr create` / `git push` when critical files change vs the appropriate base branch without a corresponding doc update. Base branch is inferred from `HEAD`: `release/*` and `develop` target `main`, everything else targets `develop` (enforces `rules/common/DOCS_UP_TO_DATE.md`). |
 | `format-code.sh` | `PostToolUse` Edit\|Write | Runs `dart format` on `.dart` files (filters by extension internally) |
 
